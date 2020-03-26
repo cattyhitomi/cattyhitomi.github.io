@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/icon.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="">
+  <meta name="author" content="Doo-J">
+  <meta name="keywords" content="">
+  <title>py脚本之myinotify - Doo-J</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link defer rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>Doo-J</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/categories/">分类</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" parallax=true
+         style="background: url('/img/1.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期二, 二月 26日 2019, 3:43 下午
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    944 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      4 分钟
+                  </span>
+                
+
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5 z-depth-3" id="board">
+          <div class="post-content mx-auto" id="post">
+            
+            <div class="markdown-body">
+              <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>分享一个文件监控的小脚本</p>
+<a id="more"></a>
+
+<h2 id="用途"><a href="#用途" class="headerlink" title="用途"></a>用途</h2><p>以前在打AWD的时候，需要一个好一点的文件监控脚本，但网上找的都不是很好用，于是自己写了一个小脚本</p>
+<h2 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h2><pre><code>#!/usr/bin/python3
+# *_* coding: utf-8 *_*
+
+import os
+import shutil
+import time
+from pyinotify import WatchManager, Notifier, ProcessEvent, IN_DELETE, IN_CREATE, IN_MODIFY, IN_OPEN, IN_ACCESS, IN_ATTRIB
+
+class Events(ProcessEvent):
+
+    def process_IN_CREATE(self, event):
+        if(event.dir != True):
+            print(&quot;[&quot;+(time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;,time.localtime(time.time())))+&quot;]&quot;,end=&#39; &#39;)
+            print(&quot;[Maskname]: Create | [Name]: &quot;+event.name+&quot; | [Path]: &quot;+event.path+&quot; | [Pathname]: &quot;+event.pathname)
+            if os.path.splitext(event.name)[-1] == &quot;.php&quot;:
+                os.unlink(event.pathname)
+                print(&quot;Successful deal the php file!&quot;)
+
+    def process_IN_DELETE(self, event):
+        if(event.dir != True):
+            print(&quot;[&quot;+(time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;,time.localtime(time.time())))+&quot;]&quot;,end=&#39; &#39;)
+            print(&quot;[Maskname]: Delete | [Name]: &quot;+event.name+&quot; | [Path]: &quot;+event.path+&quot; | [Pathname]: &quot;+event.pathname)
+            if os.path.splitext(event.name)[-1] != &quot;.php&quot;:
+                try:
+                    shutil.copyfile((pathbak + event.name), (event.path+&quot;/&quot;+event.name))
+                    print(&quot;Successful restore file!&quot;)
+                except:
+                    pass
+
+    def process_IN_MODIFY(self, event):
+        if(event.dir != True):
+            print(&quot;[&quot;+(time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;,time.localtime(time.time())))+&quot;]&quot;,end=&#39; &#39;)
+            print(&quot;[Maskname]: Change | [Name]: &quot;+event.name+&quot; | [Path]: &quot;+event.path+&quot; | [Pathname]: &quot;+event.pathname)
+
+    def process_IN_ACCESS(self, event):
+        if(event.dir != True):
+            print(&quot;[&quot;+(time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;,time.localtime(time.time())))+&quot;]&quot;,end=&#39; &#39;)
+            print(&quot;[Maskname]: Access | [Name]: &quot;+event.name+&quot; | [Path]: &quot;+event.path+&quot; | [Pathname]: &quot;+event.pathname)
+            if event.name in importence:
+                print(&quot;Notice!!! Importent file was accessed!!!&quot;)
+
+def myinotify(path):
+
+    wm = WatchManager()
+    mask = IN_DELETE | IN_CREATE | IN_MODIFY | IN_OPEN | IN_ACCESS | IN_ATTRIB
+    wm.add_watch(path, mask, auto_add=True, rec=False)
+    myevent = Events()
+    notifier = Notifier(wm, myevent)
+    notifier.loop()
+
+if __name__ == &quot;__main__&quot;:
+    path = [&#39;/var/www/html/q/&#39;]
+    pathbak = &#39;/var/www/html/q.bak/&#39;
+    importence = [&#39;flag.php&#39;,&#39;flag&#39;]
+    myinotify(path)</code></pre><h2 id="功能介绍"><a href="#功能介绍" class="headerlink" title="功能介绍"></a>功能介绍</h2><p>这个小脚本是对pyinotify模块的一次升级改造，主要分为以下功能</p>
+<ul>
+<li>增：现实情况下，文件增添一般是攻击者通过web漏洞写了木马。在此处，脚本对所有的增添文件进行监控，并自行删除所有新增的php文件</li>
+<li>删：碰到删除，在我的映像中，好像就是删除install.lock文件对web服务进行重装以达到入侵目的。此脚本可以监控所有的删除文件，并在之前设置好的备份目录里恢复所有非php文件。</li>
+<li>查：一般情况就是入侵者通过web漏洞对文件进行读取。一般来说，读取的都是重要的文件，如：config.php、database.php等等，也有可能是直接读取放在web目录下的flag。脚本在这里可以监控所有的文件读取记录，并设置重要目录importence关键词，若读取到关键词里的文件，即可发出重要提示，也可以避免文件访问过多漏过重要文件被读取的信息。</li>
+<li>改：针对所有的文件修改信息发出提醒</li>
+</ul>
+<h2 id="本地测试效果图"><a href="#本地测试效果图" class="headerlink" title="本地测试效果图"></a>本地测试效果图</h2><p>本地测试命令<br><img src="/images/myinotify1.png" alt=""></p>
+<p>效果图<br><img src="/images/myinotify2.png" alt=""></p>
+<p>可以看见install.lock文件并未被删除<br><img src="/images/myinotify3.png" alt=""></p>
+<h2 id="BUG"><a href="#BUG" class="headerlink" title="BUG"></a>BUG</h2><p>本来我的设想中，会有文件修改之后会自动恢复的这一功能，但是在实际情况下，脚本中的增添删除功能和修改恢复功能起了冲突。并且在增添监控功能中，我的设想仅删除写入的木马。但是在实际情况下，web服务会创建临时session文件，脚本也会对进行误伤。同时删除监控和增添监控在功能上存在相悖的地方。<br>这是我在这个脚本上遇到的小问题，目前来说，我的解决方法就只有关闭rec参数，分几个脚本对重要目录进行监控。但这样又有悖我的精简性原则。。。。。<br>先把问题写下来，希望以后自己技术提升，能有所解决吧！</p>
+
+            </div>
+            <hr>
+            <div>
+              <p>
+                
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E5%B7%A5%E5%85%B7%E5%BC%80%E5%8F%91/">工具开发</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/python/">python</a>
+                    
+                  </span>
+                
+              </p>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <div class="post-prev col-6">
+                    
+                    
+                      <a href="/2019/03/03/thinkphp5-0-1%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+                        <i class="fa fa-chevron-left"></i>
+                        <span class="hidden-mobile">thinkphp5.0-1远程代码执行漏洞分析</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </div>
+                  <div class="post-next col-6">
+                    
+                    
+                      <a href="/2019/01/27/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%B0%8F%E8%AE%B0/">
+                        <span class="hidden-mobile">反序列化的一些知识</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="fa fa-chevron-right"></i>
+                      </a>
+                    
+                  </div>
+                </div>
+              
+            </div>
+
+              
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc-start"></div>
+<div id="toc">
+  <p class="h5"><span style="color:white;"><i class="far fa-list-alt"></i>&nbsp;目录</span></p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+      var tocLimMax = 2 * boardTop + boardCtn.height();
+
+      $(window).scroll(function () {
+        var tocLimMin = $('#toc-start').offset().top - navHeight;
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': navHeight,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+      var offset = boardCtn.css('margin-right')
+      $('#toc-ctn').css({
+        'right': offset
+      })
+    });
+  </script>
+
+
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "py脚本之myinotify&nbsp;",
+      ],
+      cursorChar: "",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "#"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script defer src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

