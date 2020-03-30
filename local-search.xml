@@ -4,11 +4,36 @@
   
   
   <entry>
-    <title>内网-前置信息收集</title>
+    <title>反射机制</title>
+    <link href="/2020/03/31/Java%E5%AD%A6%E4%B9%A0-%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6/"/>
+    <url>/2020/03/31/Java%E5%AD%A6%E4%B9%A0-%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6/</url>
+    
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>因为对Java Web安全这一块没有做过研究，所以趁着时间比较空闲学习一下Java Web安全的知识。</p><a id="more"></a><h2 id="Java反射机制"><a href="#Java反射机制" class="headerlink" title="Java反射机制"></a>Java反射机制</h2><h3 id="什么是Java反射机制？"><a href="#什么是Java反射机制？" class="headerlink" title="什么是Java反射机制？"></a>什么是Java反射机制？</h3><p>Java反射机制是一种间接操作目标对象的一种机制。其核心在于JVM在运行的时候再动态加载类。并且对于任意一个类，只要知道它的名称，都能知道它的所有属性和方法。对于任意一个对象，都能调用它的任意方法和属性。<br>Java反射机制是Java动态特性的体现，利用反射机制我们可以轻松实现对Java类的动态调用。</p><h3 id="Java反射常用类"><a href="#Java反射常用类" class="headerlink" title="Java反射常用类"></a>Java反射常用类</h3><pre><code>Java.lang.Class;Java.lang.ClassLoader;Java.lang.reflect.Constructor;Java.lang.reflect.Field;Java.lang.reflect.Method;Java.lang.reflect.Modifier;</code></pre><h3 id="Java反射常用方法"><a href="#Java反射常用方法" class="headerlink" title="Java反射常用方法"></a>Java反射常用方法</h3><ul><li>forName() 获取类</li><li>newInstance() 初始化类</li><li>getMethod() 获取类的方法</li><li>invoke() 执行类的方法</li></ul><h3 id="Java反射的实现"><a href="#Java反射的实现" class="headerlink" title="Java反射的实现"></a>Java反射的实现</h3><ul><li>Object.getClass() 如：String.getClass()</li><li>Test.class() 如：xxx.class()</li><li>Class.forName 如：class.forName(“java.lang.Runtime”)</li></ul><h2 id="实验-反射调用类方法"><a href="#实验-反射调用类方法" class="headerlink" title="实验 - 反射调用类方法"></a>实验 - 反射调用类方法</h2><h3 id="单例实例"><a href="#单例实例" class="headerlink" title="单例实例"></a>单例实例</h3><p>Runtime类的构造方法是私有的，只能通过单例模式用静态方法获取对象，即我们只能通过Runtime().getRuntime()获取Runtime对象。  </p><p>所以，对Runtime的反射代码如下：</p><pre><code>Class class1 = Class.forName(&quot;java.lang.Runtime&quot;);   class1.getMethod(&quot;exec&quot;,String.class).invoke(class1.getMethod(&quot;getRuntime&quot;).invoke(class1),&quot;calc.exe&quot;);</code></pre><p>反射的执行流程如下：</p><pre><code>Class class1 = Class.forName(&quot;java.lang.Runtime&quot;);  Method method1 = class1.getMethod(&quot;exec&quot;, String.class);  Method method2 = class1.getMethod(&quot;getRuntime&quot;);  Object run = method2.invoke(class1);  method1.invoke(run,&quot;calc.exe&quot;);  </code></pre><p>这里对invoke()函数做一点解释：<br>invoke的功能是执行方法，第一个参数根据方法的不同而不同  </p><ul><li>普通方法，则第一个参数为类的对象</li><li>静态方法，则第一个参数为类</li></ul><h3 id="有参构造的反射"><a href="#有参构造的反射" class="headerlink" title="有参构造的反射"></a>有参构造的反射</h3><p>针对有参数的构造函数，需要引入一个新的反射方法getConstructor  </p><p>getConstructor()，参数为目标类的构造函数参数，返回的是目标类的构造函数。  </p><p>因为Runtime的构造方法是私有的，这里用ProcessBuilder来实现</p><pre><code>Class class1 = Class.forName(&quot;java.lang.ProcessBuilder&quot;);  class1.getMethod(&quot;start&quot;).invoke(class1.getConstructor(List.class).newInstance(Arrays.asList(&quot;calc.exe&quot;)));</code></pre><p>用上强制转化的代码（实际环境不一定存在）</p><pre><code>Class class1 = Class.forName(&quot;java.lang.ProcessBuilder&quot;);  ((ProcessBuilder)class1.getConstructor(List.class).newInstance(Arrays.asList(&quot;calc.exe&quot;))).start();</code></pre><h3 id="私有构造函数"><a href="#私有构造函数" class="headerlink" title="私有构造函数"></a>私有构造函数</h3><p>针对私有构造函数，我们可以通过getDeclared系列的函数进行反射。  </p><p>getDeclaredMethod()可以返回目标类的所有方法，包括私有的方法。  </p><p>这里用Runtime举例（因为它的构造方法是私有的）</p><pre><code>Class class1 = Class.forName(&quot;java.lang.Runtime&quot;);  Constructor a = class1.getDeclaredConstructor();  a.setAccessible(true);  class1.getMethod(&quot;exec&quot;, String.class).invoke(a.newInstance(),&quot;calc.exe&quot;);</code></pre><p>在这里面新出现了个setAccessible，它的作用是修改私有方法的作用域。获取私有方法后必须修改，否则无法成功调用</p><h2 id="实验-反射调用类成员"><a href="#实验-反射调用类成员" class="headerlink" title="实验 - 反射调用类成员"></a>实验 - 反射调用类成员</h2><h3 id="调用公有变量"><a href="#调用公有变量" class="headerlink" title="调用公有变量"></a>调用公有变量</h3><pre><code>Class class1 = Class.forName(&quot;com.javavuln.demo.Person&quot;);Field f1 = class1.getField(&quot;a&quot;);  System.out.println(f1.get(class1.newInstance()));</code></pre><h3 id="调用所有变量"><a href="#调用所有变量" class="headerlink" title="调用所有变量"></a>调用所有变量</h3><pre><code>Class class1 = Class.forName(&quot;com.javavuln.demo.Person&quot;);Field f1 = class1.getDeclaredField(&quot;b&quot;);f1.setAccessible(true);System.out.println(f1.get(class1.newInstance()));</code></pre><h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[<a href="https://javasec.org/javase/Reflection/Reflection.html]" target="_blank" rel="noopener">https://javasec.org/javase/Reflection/Reflection.html]</a></p>]]></content>
+    
+    
+    <categories>
+      
+      <category>Java Web安全</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Java的反射机制</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>前置信息收集</title>
     <link href="/2020/03/27/%E5%86%85%E7%BD%91%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/"/>
     <url>/2020/03/27/%E5%86%85%E7%BD%91%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/</url>
     
-    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>进入内网，我们需要解决两个个问题</p><ul><li>who?</li><li>where?<br>因此，内网的信息收集是内网渗透必不可少的一环<a id="more"></a></li></ul><h2 id="用户信息"><a href="#用户信息" class="headerlink" title="用户信息"></a>用户信息</h2><h3 id="查询用户列表"><a href="#查询用户列表" class="headerlink" title="查询用户列表"></a>查询用户列表</h3><p><code>net user</code></p><h3 id="查询本地管理员信息"><a href="#查询本地管理员信息" class="headerlink" title="查询本地管理员信息"></a>查询本地管理员信息</h3><p><code>net localgroup administrators</code></p><h3 id="查询当前在线用户"><a href="#查询当前在线用户" class="headerlink" title="查询当前在线用户"></a>查询当前在线用户</h3><p><code>query  user || qwinsta</code></p><h3 id="查询会话"><a href="#查询会话" class="headerlink" title="查询会话"></a>查询会话</h3><p><code>net session</code></p><h2 id="网络信息"><a href="#网络信息" class="headerlink" title="网络信息"></a>网络信息</h2><h3 id="查看本机网络配置"><a href="#查看本机网络配置" class="headerlink" title="查看本机网络配置"></a>查看本机网络配置</h3><p><code>ipconfig /all</code></p><h3 id="查看arp缓存"><a href="#查看arp缓存" class="headerlink" title="查看arp缓存"></a>查看arp缓存</h3><p><code>arp -a</code></p><h3 id="查看路由表"><a href="#查看路由表" class="headerlink" title="查看路由表"></a>查看路由表</h3><p><code>route print</code></p><h3 id="查看端口"><a href="#查看端口" class="headerlink" title="查看端口"></a>查看端口</h3><p><code>netstat -ano</code></p><h2 id="主机信息"><a href="#主机信息" class="headerlink" title="主机信息"></a>主机信息</h2><h3 id="主机版本"><a href="#主机版本" class="headerlink" title="主机版本"></a>主机版本</h3><p><code>systeminfo | findstr /b /c:&quot;OS Name&quot; /c:&quot;OS Version&quot;</code><br>中文版则如下：<br>systeminfo | findstr /b /c:”OS 名称” /c:”OS 版本”</p><h3 id="系统体系结构"><a href="#系统体系结构" class="headerlink" title="系统体系结构"></a>系统体系结构</h3><p><code>echo %processor_architecture%</code></p><h3 id="安装软件"><a href="#安装软件" class="headerlink" title="安装软件"></a>安装软件</h3><p>使用wmic：<br><code>wmic product get name,version</code><br>使用PowerShell：<br><code>powershell &quot;get-wmiobject -class win32_product | select-object -property name,version&quot;</code></p><h3 id="杀软信息"><a href="#杀软信息" class="headerlink" title="杀软信息"></a>杀软信息</h3><p><code>wmic /Node:localhost /Namespace:\\root\SecurityCenter2 Path AntiVirusProduct get /format:LIST</code></p><h3 id="服务信息"><a href="#服务信息" class="headerlink" title="服务信息"></a>服务信息</h3><p><code>wmic service list brief</code></p><h3 id="进程信息"><a href="#进程信息" class="headerlink" title="进程信息"></a>进程信息</h3><p><code>tasklist /svc</code><br>或<br><code>wmic process list brief</code></p><h3 id="系统自启动项"><a href="#系统自启动项" class="headerlink" title="系统自启动项"></a>系统自启动项</h3><p><code>wmic startup get command,caption</code></p><h3 id="计划任务"><a href="#计划任务" class="headerlink" title="计划任务"></a>计划任务</h3><p><code>schtask /query /fo /list /v</code></p><h3 id="开机时长"><a href="#开机时长" class="headerlink" title="开机时长"></a>开机时长</h3><p><code>net statistics workstation</code></p><h3 id="系统补丁"><a href="#系统补丁" class="headerlink" title="系统补丁"></a>系统补丁</h3><p><code>systeminfo</code><br>或<br><code>wmic qfe get caption,description,hotfixid,installedon</code></p><h3 id="共享列表"><a href="#共享列表" class="headerlink" title="共享列表"></a>共享列表</h3><p><code>net share</code><br>或<br><code>wmic share get name,path,status</code></p><h3 id="防火墙配置"><a href="#防火墙配置" class="headerlink" title="防火墙配置"></a>防火墙配置</h3><p><code>netsh firewall show config</code></p><h3 id="远程连接端口"><a href="#远程连接端口" class="headerlink" title="远程连接端口"></a>远程连接端口</h3><p><code>REG QUERY &quot;HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp&quot; /V PortNumber</code></p><h2 id="权限信息"><a href="#权限信息" class="headerlink" title="权限信息"></a>权限信息</h2><h3 id="当前权限"><a href="#当前权限" class="headerlink" title="当前权限"></a>当前权限</h3><p><code>whoami</code></p><h3 id="获取SID"><a href="#获取SID" class="headerlink" title="获取SID"></a>获取SID</h3><p><code>whoami /all</code></p><h3 id="获取用户详细信息"><a href="#获取用户详细信息" class="headerlink" title="获取用户详细信息"></a>获取用户详细信息</h3><p><code>net user xxx /domain</code></p><h2 id="判断域"><a href="#判断域" class="headerlink" title="判断域"></a>判断域</h2><p>当一台主机不清楚是否入域，我们可以通过以下方式判断</p><h3 id="net命令"><a href="#net命令" class="headerlink" title="net命令"></a>net命令</h3><p><code>net user /domain</code></p><h3 id="ipconfig命令"><a href="#ipconfig命令" class="headerlink" title="ipconfig命令"></a>ipconfig命令</h3><p>首先通过<code>ipconfig</code>获取IP信息<br>再通过<code>nslookup</code>反向解析查询IP地址，由此判断DNS服务器和域控是否在一台服务器上</p><h3 id="查看系统详细情况"><a href="#查看系统详细情况" class="headerlink" title="查看系统详细情况"></a>查看系统详细情况</h3><p>在系统详细信息里，会存有当前系统是否入域的情况<br><code>systeminfo | findstr /C:&quot;Domain&quot;</code></p><h3 id="查询当前登录域及登录情况"><a href="#查询当前登录域及登录情况" class="headerlink" title="查询当前登录域及登录情况"></a>查询当前登录域及登录情况</h3><p><code>net config workstation</code></p><h3 id="时间服务器判断主域"><a href="#时间服务器判断主域" class="headerlink" title="时间服务器判断主域"></a>时间服务器判断主域</h3><p>域控服务器通常也被当作时间服务器来使用，因此我们可以通过以下命令判断主域<br><code>net time /domain</code><br>根据结果不同来判断当前用户情况</p><ul><li>发生系统错误：存在域，但当前用户不是域用户</li><li>返回时间：存在域且当前用户为域用户</li><li>返回WORKGROUP：网络环境为工作组，不存在域</li></ul><h2 id="域内信息"><a href="#域内信息" class="headerlink" title="域内信息"></a>域内信息</h2><p>已经确认主机已入域，可以通过下面命令收集信息</p><h3 id="查询域"><a href="#查询域" class="headerlink" title="查询域"></a>查询域</h3><p><code>net view /domain</code>或<code>net user /domain</code></p><h3 id="查询域内机器"><a href="#查询域内机器" class="headerlink" title="查询域内机器"></a>查询域内机器</h3><p><code>net view /domain:xxx</code></p><h3 id="查询域用户组"><a href="#查询域用户组" class="headerlink" title="查询域用户组"></a>查询域用户组</h3><p><code>net group /domain</code></p><h3 id="查询域用户列表"><a href="#查询域用户列表" class="headerlink" title="查询域用户列表"></a>查询域用户列表</h3><p><code>net group &quot;domain computers&quot; /domain</code></p><h3 id="获取密码策略"><a href="#获取密码策略" class="headerlink" title="获取密码策略"></a>获取密码策略</h3><p><code>net accounts /domain</code></p><h3 id="获取域信任信息"><a href="#获取域信任信息" class="headerlink" title="获取域信任信息"></a>获取域信任信息</h3><p><code>nltest /domain_trusts</code></p><h3 id="获取域内共享文件"><a href="#获取域内共享文件" class="headerlink" title="获取域内共享文件"></a>获取域内共享文件</h3><p><code>net view \\dc</code></p><h2 id="域控信息"><a href="#域控信息" class="headerlink" title="域控信息"></a>域控信息</h2><h3 id="查询域控名"><a href="#查询域控名" class="headerlink" title="查询域控名"></a>查询域控名</h3><p><code>nltest /dclist:xxx</code></p><h3 id="查询域控主机名"><a href="#查询域控主机名" class="headerlink" title="查询域控主机名"></a>查询域控主机名</h3><p><code>nslookup -type=srv +ldap._tcp</code></p><h3 id="查询域控组"><a href="#查询域控组" class="headerlink" title="查询域控组"></a>查询域控组</h3><p><code>net group &quot;domain controllers&quot; /domain</code></p><h3 id="查询主域控器"><a href="#查询主域控器" class="headerlink" title="查询主域控器"></a>查询主域控器</h3><p><code>netdom query pdc</code></p><h2 id="域内用户和管理员信息"><a href="#域内用户和管理员信息" class="headerlink" title="域内用户和管理员信息"></a>域内用户和管理员信息</h2><h3 id="查询域用户列表-1"><a href="#查询域用户列表-1" class="headerlink" title="查询域用户列表"></a>查询域用户列表</h3><h4 id="域控查询"><a href="#域控查询" class="headerlink" title="域控查询"></a>域控查询</h4><p><code>net user /domain</code></p><h4 id="获取详细信息"><a href="#获取详细信息" class="headerlink" title="获取详细信息"></a>获取详细信息</h4><p><code>wmic useraccount get /all</code></p><h3 id="查询本地管理员组"><a href="#查询本地管理员组" class="headerlink" title="查询本地管理员组"></a>查询本地管理员组</h3><p><code>net localgroup administrators</code></p><h3 id="查询域管用户"><a href="#查询域管用户" class="headerlink" title="查询域管用户"></a>查询域管用户</h3><p><code>net group &quot;domain admins&quot; /domain</code></p><h3 id="查询管理员用户组"><a href="#查询管理员用户组" class="headerlink" title="查询管理员用户组"></a>查询管理员用户组</h3><p><code>net group &quot;enterprise admins&quot; /domain</code></p>]]></content>
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>进入内网，我们需要解决三个个问题</p><ul><li>who?</li><li>where?  </li><li>purview?<br>因此，内网的信息收集是内网渗透必不可少的一环<a id="more"></a></li></ul><h2 id="用户信息"><a href="#用户信息" class="headerlink" title="用户信息"></a>用户信息</h2><h3 id="查询用户列表"><a href="#查询用户列表" class="headerlink" title="查询用户列表"></a>查询用户列表</h3><p><code>net user</code></p><h3 id="查询本地管理员信息"><a href="#查询本地管理员信息" class="headerlink" title="查询本地管理员信息"></a>查询本地管理员信息</h3><p><code>net localgroup administrators</code></p><h3 id="查询当前在线用户"><a href="#查询当前在线用户" class="headerlink" title="查询当前在线用户"></a>查询当前在线用户</h3><p><code>query  user || qwinsta</code></p><h3 id="查询会话"><a href="#查询会话" class="headerlink" title="查询会话"></a>查询会话</h3><p><code>net session</code></p><h2 id="网络信息"><a href="#网络信息" class="headerlink" title="网络信息"></a>网络信息</h2><h3 id="查看本机网络配置"><a href="#查看本机网络配置" class="headerlink" title="查看本机网络配置"></a>查看本机网络配置</h3><p><code>ipconfig /all</code></p><h3 id="查看arp缓存"><a href="#查看arp缓存" class="headerlink" title="查看arp缓存"></a>查看arp缓存</h3><p><code>arp -a</code></p><h3 id="查看路由表"><a href="#查看路由表" class="headerlink" title="查看路由表"></a>查看路由表</h3><p><code>route print</code></p><h3 id="查看端口"><a href="#查看端口" class="headerlink" title="查看端口"></a>查看端口</h3><p><code>netstat -ano</code></p><h2 id="主机信息"><a href="#主机信息" class="headerlink" title="主机信息"></a>主机信息</h2><h3 id="主机版本"><a href="#主机版本" class="headerlink" title="主机版本"></a>主机版本</h3><p><code>systeminfo | findstr /b /c:&quot;OS Name&quot; /c:&quot;OS Version&quot;</code><br>中文版则如下：<br>systeminfo | findstr /b /c:”OS 名称” /c:”OS 版本”</p><h3 id="系统体系结构"><a href="#系统体系结构" class="headerlink" title="系统体系结构"></a>系统体系结构</h3><p><code>echo %processor_architecture%</code></p><h3 id="安装软件"><a href="#安装软件" class="headerlink" title="安装软件"></a>安装软件</h3><p>使用wmic：<br><code>wmic product get name,version</code><br>使用PowerShell：<br><code>powershell &quot;get-wmiobject -class win32_product | select-object -property name,version&quot;</code></p><h3 id="杀软信息"><a href="#杀软信息" class="headerlink" title="杀软信息"></a>杀软信息</h3><p><code>wmic /Node:localhost /Namespace:\\root\SecurityCenter2 Path AntiVirusProduct get /format:LIST</code></p><h3 id="服务信息"><a href="#服务信息" class="headerlink" title="服务信息"></a>服务信息</h3><p><code>wmic service list brief</code></p><h3 id="进程信息"><a href="#进程信息" class="headerlink" title="进程信息"></a>进程信息</h3><p><code>tasklist /svc</code><br>或<br><code>wmic process list brief</code></p><h3 id="系统自启动项"><a href="#系统自启动项" class="headerlink" title="系统自启动项"></a>系统自启动项</h3><p><code>wmic startup get command,caption</code></p><h3 id="计划任务"><a href="#计划任务" class="headerlink" title="计划任务"></a>计划任务</h3><p><code>schtask /query /fo /list /v</code></p><h3 id="开机时长"><a href="#开机时长" class="headerlink" title="开机时长"></a>开机时长</h3><p><code>net statistics workstation</code></p><h3 id="系统补丁"><a href="#系统补丁" class="headerlink" title="系统补丁"></a>系统补丁</h3><p><code>systeminfo</code><br>或<br><code>wmic qfe get caption,description,hotfixid,installedon</code></p><h3 id="共享列表"><a href="#共享列表" class="headerlink" title="共享列表"></a>共享列表</h3><p><code>net share</code><br>或<br><code>wmic share get name,path,status</code></p><h3 id="防火墙配置"><a href="#防火墙配置" class="headerlink" title="防火墙配置"></a>防火墙配置</h3><p><code>netsh firewall show config</code></p><h3 id="远程连接端口"><a href="#远程连接端口" class="headerlink" title="远程连接端口"></a>远程连接端口</h3><p><code>REG QUERY &quot;HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp&quot; /V PortNumber</code></p><h2 id="权限信息"><a href="#权限信息" class="headerlink" title="权限信息"></a>权限信息</h2><h3 id="当前权限"><a href="#当前权限" class="headerlink" title="当前权限"></a>当前权限</h3><p><code>whoami</code></p><h3 id="获取SID"><a href="#获取SID" class="headerlink" title="获取SID"></a>获取SID</h3><p><code>whoami /all</code></p><h3 id="获取用户详细信息"><a href="#获取用户详细信息" class="headerlink" title="获取用户详细信息"></a>获取用户详细信息</h3><p><code>net user xxx /domain</code></p><h2 id="判断域"><a href="#判断域" class="headerlink" title="判断域"></a>判断域</h2><p>当一台主机不清楚是否入域，我们可以通过以下方式判断</p><h3 id="net命令"><a href="#net命令" class="headerlink" title="net命令"></a>net命令</h3><p><code>net user /domain</code></p><h3 id="ipconfig命令"><a href="#ipconfig命令" class="headerlink" title="ipconfig命令"></a>ipconfig命令</h3><p>首先通过<code>ipconfig</code>获取IP信息<br>再通过<code>nslookup</code>反向解析查询IP地址，由此判断DNS服务器和域控是否在一台服务器上</p><h3 id="查看系统详细情况"><a href="#查看系统详细情况" class="headerlink" title="查看系统详细情况"></a>查看系统详细情况</h3><p>在系统详细信息里，会存有当前系统是否入域的情况<br><code>systeminfo | findstr /C:&quot;Domain&quot;</code></p><h3 id="查询当前登录域及登录情况"><a href="#查询当前登录域及登录情况" class="headerlink" title="查询当前登录域及登录情况"></a>查询当前登录域及登录情况</h3><p><code>net config workstation</code></p><h3 id="时间服务器判断主域"><a href="#时间服务器判断主域" class="headerlink" title="时间服务器判断主域"></a>时间服务器判断主域</h3><p>域控服务器通常也被当作时间服务器来使用，因此我们可以通过以下命令判断主域<br><code>net time /domain</code><br>根据结果不同来判断当前用户情况</p><ul><li>发生系统错误：存在域，但当前用户不是域用户</li><li>返回时间：存在域且当前用户为域用户</li><li>返回WORKGROUP：网络环境为工作组，不存在域</li></ul><h2 id="域内信息"><a href="#域内信息" class="headerlink" title="域内信息"></a>域内信息</h2><p>已经确认主机已入域，可以通过下面命令收集信息</p><h3 id="查询域"><a href="#查询域" class="headerlink" title="查询域"></a>查询域</h3><p><code>net view /domain</code>或<code>net user /domain</code></p><h3 id="查询域内机器"><a href="#查询域内机器" class="headerlink" title="查询域内机器"></a>查询域内机器</h3><p><code>net view /domain:xxx</code></p><h3 id="查询域用户组"><a href="#查询域用户组" class="headerlink" title="查询域用户组"></a>查询域用户组</h3><p><code>net group /domain</code></p><h3 id="查询域用户列表"><a href="#查询域用户列表" class="headerlink" title="查询域用户列表"></a>查询域用户列表</h3><p><code>net group &quot;domain computers&quot; /domain</code></p><h3 id="获取密码策略"><a href="#获取密码策略" class="headerlink" title="获取密码策略"></a>获取密码策略</h3><p><code>net accounts /domain</code></p><h3 id="获取域信任信息"><a href="#获取域信任信息" class="headerlink" title="获取域信任信息"></a>获取域信任信息</h3><p><code>nltest /domain_trusts</code></p><h3 id="获取域内共享文件"><a href="#获取域内共享文件" class="headerlink" title="获取域内共享文件"></a>获取域内共享文件</h3><p><code>net view \\dc</code></p><h2 id="域控信息"><a href="#域控信息" class="headerlink" title="域控信息"></a>域控信息</h2><h3 id="查询域控名"><a href="#查询域控名" class="headerlink" title="查询域控名"></a>查询域控名</h3><p><code>nltest /dclist:xxx</code></p><h3 id="查询域控主机名"><a href="#查询域控主机名" class="headerlink" title="查询域控主机名"></a>查询域控主机名</h3><p><code>nslookup -type=srv +ldap._tcp</code></p><h3 id="查询域控组"><a href="#查询域控组" class="headerlink" title="查询域控组"></a>查询域控组</h3><p><code>net group &quot;domain controllers&quot; /domain</code></p><h3 id="查询主域控器"><a href="#查询主域控器" class="headerlink" title="查询主域控器"></a>查询主域控器</h3><p><code>netdom query pdc</code></p><h2 id="域内用户和管理员信息"><a href="#域内用户和管理员信息" class="headerlink" title="域内用户和管理员信息"></a>域内用户和管理员信息</h2><h3 id="查询域用户列表-1"><a href="#查询域用户列表-1" class="headerlink" title="查询域用户列表"></a>查询域用户列表</h3><h4 id="域控查询"><a href="#域控查询" class="headerlink" title="域控查询"></a>域控查询</h4><p><code>net user /domain</code></p><h4 id="获取详细信息"><a href="#获取详细信息" class="headerlink" title="获取详细信息"></a>获取详细信息</h4><p><code>wmic useraccount get /all</code></p><h3 id="查询本地管理员组"><a href="#查询本地管理员组" class="headerlink" title="查询本地管理员组"></a>查询本地管理员组</h3><p><code>net localgroup administrators</code></p><h3 id="查询域管用户"><a href="#查询域管用户" class="headerlink" title="查询域管用户"></a>查询域管用户</h3><p><code>net group &quot;domain admins&quot; /domain</code></p><h3 id="查询管理员用户组"><a href="#查询管理员用户组" class="headerlink" title="查询管理员用户组"></a>查询管理员用户组</h3><p><code>net group &quot;enterprise admins&quot; /domain</code></p>]]></content>
     
     
     <categories>
@@ -20,7 +45,7 @@
     
     <tags>
       
-      <tag>内网</tag>
+      <tag>内网信息收集</tag>
       
     </tags>
     
@@ -38,7 +63,7 @@
     
     <categories>
       
-      <category>渗透测试</category>
+      <category>内网渗透</category>
       
     </categories>
     
@@ -54,7 +79,7 @@
   
   
   <entry>
-    <title>域渗透-环境搭建</title>
+    <title>域渗透环境搭建</title>
     <link href="/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/"/>
     <url>/2019/10/25/%E5%9F%9F%E6%B8%97%E9%80%8F-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/</url>
     
@@ -63,14 +88,14 @@
     
     <categories>
       
-      <category>渗透测试</category>
+      <category>内网渗透</category>
       
     </categories>
     
     
     <tags>
       
-      <tag>域渗透</tag>
+      <tag>内网环境搭建</tag>
       
     </tags>
     
@@ -79,7 +104,7 @@
   
   
   <entry>
-    <title>域渗透-概念</title>
+    <title>域渗透基础概念</title>
     <link href="/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/"/>
     <url>/2019/10/24/%E5%9F%9F%E6%B8%97%E9%80%8F-%E6%A6%82%E5%BF%B5/</url>
     
@@ -88,14 +113,14 @@
     
     <categories>
       
-      <category>渗透测试</category>
+      <category>内网渗透</category>
       
     </categories>
     
     
     <tags>
       
-      <tag>域渗透</tag>
+      <tag>内网环境搭建</tag>
       
     </tags>
     
@@ -113,7 +138,7 @@
     
     <categories>
       
-      <category>Web</category>
+      <category>Web安全</category>
       
     </categories>
     
@@ -179,7 +204,7 @@
   
   
   <entry>
-    <title>py脚本之myinotify</title>
+    <title>py脚本 - myinotify</title>
     <link href="/2019/02/26/py%E8%84%9A%E6%9C%AC%E4%B9%8Bmyinotify/"/>
     <url>/2019/02/26/py%E8%84%9A%E6%9C%AC%E4%B9%8Bmyinotify/</url>
     
@@ -204,7 +229,7 @@
   
   
   <entry>
-    <title>反序列化的一些知识</title>
+    <title>反序列化小记</title>
     <link href="/2019/01/27/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%B0%8F%E8%AE%B0/"/>
     <url>/2019/01/27/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%B0%8F%E8%AE%B0/</url>
     
@@ -213,7 +238,7 @@
     
     <categories>
       
-      <category>代码审计</category>
+      <category>Web安全</category>
       
     </categories>
     
@@ -229,7 +254,7 @@
   
   
   <entry>
-    <title>代码审计之wodecms</title>
+    <title>代码审计 - wodecms</title>
     <link href="/2018/11/08/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms/"/>
     <url>/2018/11/08/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8Bwodecms/</url>
     
@@ -245,7 +270,7 @@
     
     <tags>
       
-      <tag>代码审计</tag>
+      <tag>WODECMS</tag>
       
     </tags>
     
